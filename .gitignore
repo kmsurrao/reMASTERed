@@ -3,3 +3,4 @@ slurm-*.out
 images/*
 *.png
 *sbatch*
+*.p
