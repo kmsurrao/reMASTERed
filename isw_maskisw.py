@@ -9,15 +9,18 @@ print('imports complete', flush=True)
 
 scratch_path = '/global/cscratch1/sd/kmsurrao/Correlated-Mask-Power-Spectrum/'
 nside = 1024 #original nside of isw.fits is 4096
-ellmax = 1000
+ellmax = 500
+dl = 10
+Nl = int(ellmax/dl)
 nside_for_masking = 1024
 ells = np.arange(ellmax+1)
 
 #load binned bispectrum
-bispectrum = pickle.load(open('linear_interpolated_bispectrum_ellmax1000_100origbins.p', 'rb'))[:ellmax+1, :ellmax+1, :ellmax+1]
+bispectrum = pickle.load(open(f'linear_interpolated_bispectrum_ellmax{ellmax}_{Nl}origbins.p', 'rb'))[:ellmax+1, :ellmax+1, :ellmax+1]
 
 #load maps
-isw_map = hp.read_map(f'{scratch_path}/maps/isw.fits')
+# isw_map = hp.read_map(f'{scratch_path}/maps/isw.fits') #for cori
+isw_map = hp.read_map('isw.fits') #for moto
 isw_map = hp.ud_grade(isw_map, nside)
 # isw_map = hp.remove_monopole(isw_map) #todo, remove?
 isw_cl = hp.anafast(isw_map, lmax=ellmax)
@@ -29,10 +32,9 @@ print('saved images/isw_map.png', flush=True)
 
 
 #load wigner3j symbols and bispectrum
-wigner_file = '/global/homes/k/kmsurrao/NILC-Parameter-Pipeline/wigner3j_ellmax1000.p'
-wigner_nonzero_m_file = '/global/homes/k/kmsurrao/NILC-Parameter-Pipeline/wigner3j_nonzero_m_ellmax1000.p'
+wigner_file = '/global/homes/k/kmsurrao/NILC-Parameter-Pipeline/wigner3j_ellmax1000.p' #for cori
+wigner_file = '/moto/hill/users/kms2320/wigner3j_ellmax1000.p' #for moto
 wigner_zero_m = pickle.load(open(wigner_file, 'rb'))[:ellmax+1, :ellmax+1, :ellmax+1]
-wigner_nonzero_m = pickle.load(open(wigner_nonzero_m_file, 'rb'))[:ellmax+1, :ellmax+1, :2*ellmax+1]
 
 
 

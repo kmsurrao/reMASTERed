@@ -4,3 +4,4 @@ images/*
 *.png
 *sbatch*
 *.p
+*.fits
