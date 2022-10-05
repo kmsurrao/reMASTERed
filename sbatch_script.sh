@@ -9,4 +9,4 @@ module load texlive
 
 source activate my_mpi4py_env
 
-python test.py
+python bispectrum.py

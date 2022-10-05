@@ -1,0 +1,5 @@
+slurm-*.out
+*.sh*
+images/*
+*.png
+*sbatch*
