@@ -86,7 +86,7 @@ def Bispectrum(alm, Cl, wlm, Ml, lmax, Nside, Nl, dl, min_l):
 
     # Combine to find numerator
     # notation: a=bin1, b=bin2, c=bin3, n indexes pixel
-    check_bins_array = check_bins(tj_arr)
+    check_bins_array = check_bins(Nl)
     print('got check_bins_array', flush=True)
     sym_factors_array = get_sym_factors(Nl)
     print('got sym_factors_array', flush=True)
