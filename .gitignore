@@ -5,3 +5,4 @@ images/*
 *sbatch*
 *.p
 *.fits
+bispectrum_plots/*
