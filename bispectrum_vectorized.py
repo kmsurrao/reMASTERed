@@ -134,8 +134,8 @@ def Bispectrum(alm, Cl, wlm, Ml, lmax, Nside, Nl, dl, min_l):
     return b_ideal
 
 if __name__=="__main__":
-    ellmax = 500
-    Nside = 256
+    ellmax = 1000
+    Nside = 512
     # ellmax = 100
     # Nside = 64
     # Binning parameters
