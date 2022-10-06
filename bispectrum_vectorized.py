@@ -46,17 +46,29 @@ def Bispectrum(alm, Cl, wlm, Ml, lmax, Nside, Nl, dl, min_l):
     print('computed I maps', flush=True)
 
 
-    def check_bins(bins):
+    # Load pre-computed 3j symbols
+    assert lmax<=1000, "Higher-l 3j symbols not yet precomputed!"
+    # tj_arr = pickle.load(open('/global/homes/k/kmsurrao/NILC-Parameter-Pipeline/wigner3j_ellmax1000.p', 'rb'))[:lmax+1,:lmax+1,:lmax+1] #for cori
+    tj_arr = pickle.load(open('/moto/hill/users/kms2320/wigner3j_ellmax1000.p', 'rb'))[:lmax+1,:lmax+1,:lmax+1] #for moto
+    print('loaded tj_arr', flush=True)
+
+    def check_bins(Nl):
         """Array is one if modes in the bin satisfy the even-parity triangle conditions, or zero else.
         
         This is used either for all triangles in the bin, or just the center of the bin.
         """
-        output = np.ones((len(bins), len(bins), len(bins)))
-        l1 = min_l+(bins+0.5)*dl
-        l2 = min_l+(bins+0.5)*dl
-        l3 = min_l+(bins+0.5)*dl
-        output[l3<abs(l1-l2)] = 0
-        output[l3>l1+l2] = 0
+        bins = np.arange(Nl)
+        bins_to_ells = min_l+(bins+0.5)*dl
+        output = np.ones((Nl, Nl, Nl))
+        for b1,l1 in enumerate(bins_to_ells):
+            for b2,l2 in enumerate(bins_to_ells):
+                for b3,l3 in enumerate(bins_to_ells):
+                    if l3<abs(l1-l2) or l3>l1+l2:
+                        output[b1,b2,b3] = 0
+                    elif l2<abs(l1-l3) or l2>l1+l3:
+                        output[b1,b2,b3] = 0
+                    elif l1<abs(l2-l3) or l1>l2+l3:
+                        output[b1,b2,b3] = 0
         return output
     
     def get_sym_factors(Nl):
@@ -74,7 +86,7 @@ def Bispectrum(alm, Cl, wlm, Ml, lmax, Nside, Nl, dl, min_l):
 
     # Combine to find numerator
     # notation: a=bin1, b=bin2, c=bin3, n indexes pixel
-    check_bins_array = check_bins(np.arange(Nl))
+    check_bins_array = check_bins(tj_arr)
     print('got check_bins_array', flush=True)
     sym_factors_array = get_sym_factors(Nl)
     print('got sym_factors_array', flush=True)
@@ -85,11 +97,6 @@ def Bispectrum(alm, Cl, wlm, Ml, lmax, Nside, Nl, dl, min_l):
     N_b = len(b_num_ideal)
     print("%d bispectrum bins"%N_b, flush=True)
 
-    # Load pre-computed 3j symbols
-    assert lmax<=1000, "Higher-l 3j symbols not yet precomputed!"
-    # tj_arr = pickle.load(open('/global/homes/k/kmsurrao/NILC-Parameter-Pipeline/wigner3j_ellmax1000.p', 'rb'))[:lmax+1,:lmax+1,:lmax+1] #for cori
-    tj_arr = pickle.load(open('/moto/hill/users/kms2320/wigner3j_ellmax1000.p', 'rb'))[:lmax+1,:lmax+1,:lmax+1] #for moto
-    print('loaded tj_arr', flush=True)
 
     # C and M vectors 
     Cl_vec = np.array([(li>=2)*(Cl_interp(li)) for li in l])
