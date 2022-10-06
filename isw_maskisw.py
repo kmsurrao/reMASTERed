@@ -9,18 +9,18 @@ print('imports complete', flush=True)
 
 scratch_path = '/global/cscratch1/sd/kmsurrao/Correlated-Mask-Power-Spectrum/'
 nside = 1024 #original nside of isw.fits is 4096
-ellmax = 500
+ellmax = 499
 dl = 10
-Nl = int(ellmax/dl)
+Nl = int((ellmax+1)/dl)
 nside_for_masking = 1024
 ells = np.arange(ellmax+1)
 
 #load binned bispectrum
-bispectrum = pickle.load(open(f'linear_interpolated_bispectrum_ellmax{ellmax}_{Nl}origbins.p', 'rb'))[:ellmax+1, :ellmax+1, :ellmax+1]
+bispectrum = pickle.load(open(f'linear_interpolated_bispectrum_ellmax{ellmax+1}_{Nl}origbins.p', 'rb'))[:ellmax+1, :ellmax+1, :ellmax+1]
 
 #load maps
-# isw_map = hp.read_map(f'{scratch_path}/maps/isw.fits') #for cori
-isw_map = hp.read_map('isw.fits') #for moto
+isw_map = hp.read_map(f'{scratch_path}/maps/isw.fits') #for cori
+# isw_map = hp.read_map('isw.fits') #for moto
 isw_map = hp.ud_grade(isw_map, nside)
 # isw_map = hp.remove_monopole(isw_map) #todo, remove?
 isw_cl = hp.anafast(isw_map, lmax=ellmax)
@@ -33,7 +33,7 @@ print('saved images/isw_map.png', flush=True)
 
 #load wigner3j symbols and bispectrum
 wigner_file = '/global/homes/k/kmsurrao/NILC-Parameter-Pipeline/wigner3j_ellmax1000.p' #for cori
-wigner_file = '/moto/hill/users/kms2320/wigner3j_ellmax1000.p' #for moto
+# wigner_file = '/moto/hill/users/kms2320/wigner3j_ellmax1000.p' #for moto
 wigner_zero_m = pickle.load(open(wigner_file, 'rb'))[:ellmax+1, :ellmax+1, :ellmax+1]
 
 
@@ -112,9 +112,9 @@ comp_map_alm = hp.map2alm(comp_map)
 mask_alm = hp.map2alm(mask)
 W  = hp.alm2cl(comp_map_alm, mask_alm, lmax=ellmax)
 M = hp.alm2cl(mask_alm, lmax=ellmax)
-print('W: ', W, flush=True)
-print('M: ', M, flush=True)
-print('C: ', comp_cl, flush=True)
+print('W: ', W[50:70], flush=True)
+print('M: ', M[50:70], flush=True)
+print('C: ', comp_cl[50:70], flush=True)
 ells = np.arange(ellmax+1)
 plt.clf()
 plt.plot(ells[0:], abs(W[0:]), label='abs(W) (component, mask cross spectrum)')
@@ -144,7 +144,10 @@ l3 = np.arange(ellmax+1)
 #             m_array[l][i] = 1
 term1 = float(1/(4*np.pi))*np.einsum('a,b,lab,lab,a,b->l',2*l2+1,2*l3+1,wigner_zero_m,wigner_zero_m,comp_cl,M,optimize=True)
 term2 = float(1/(4*np.pi))*np.einsum('a,b,lab,lab,a,b->l',2*l2+1,2*l3+1,wigner_zero_m,wigner_zero_m,W,W,optimize=True)
-term3 = float(2/(4*np.pi)**1.5)*mask_alm[0]*np.einsum('b,lab,lab,lab->l',2*l3+1,wigner_zero_m,wigner_zero_m,bispectrum,optimize=True)
+print('wigner_zero_m.shape: ', wigner_zero_m.shape, flush=True)
+print('bispectrum.shape: ', bispectrum.shape, flush=True)
+# term3 = float(2/(4*np.pi)**1.5)*mask_alm[0]*np.einsum('b,lab,lab,lab->l',2*l3+1,wigner_zero_m,wigner_zero_m,bispectrum,optimize=True)
+term3 = float(2/(4*np.pi)**1)*mask_alm[0]*np.einsum('a,b,lab,lab,lab->l',2*l2+1,2*l3+1,wigner_zero_m,wigner_zero_m,bispectrum,optimize=True)
 master_cl = term1 + term2 + term3
 
 
@@ -165,7 +168,7 @@ plt.grid()
 plt.savefig(f'images/isw_corr_mask.png')
 print(f'saved fig images/isw_corr_mask.png')
 plt.close('all')
-print(masked_map_cl/master_cl)
+print((masked_map_cl/master_cl)[50:70])
 print('masked_map_cl: ', masked_map_cl[50:70])
 print('master_cl: ', master_cl[50:70])
 print('comp_cl: ', comp_cl[50:70])
