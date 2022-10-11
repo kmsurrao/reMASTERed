@@ -4,7 +4,7 @@ import pickle
 from scipy.interpolate import InterpolatedUnivariateSpline
 
 
-def Bispectrum(alm, Cl, wlm, Ml, lmax, Nside, Nl, dl, min_l):
+def Bispectrum(alm1, Cl1, alm2, Cl2, alm3, Cl3, lmax, Nside, Nl, dl, min_l):
 
     print("binned lmax: %d"%(min_l+dl*Nl), flush=True)
     A_pix = 4.*np.pi/(12*Nside**2)
@@ -13,13 +13,16 @@ def Bispectrum(alm, Cl, wlm, Ml, lmax, Nside, Nl, dl, min_l):
     l = np.arange(lmax+1)
     l_arr,m_arr = hp.Alm.getlm(lmax)
     # Interpolate to all ell, m grid
-    Cl_interp = InterpolatedUnivariateSpline(l,Cl)
-    Cl_lm = Cl_interp(l_arr)
-    Ml_interp = InterpolatedUnivariateSpline(l,Ml)
-    Ml_lm = Ml_interp(l_arr)
-    # Zero out ell = 0 and ell = 1
-    Cl_lm[l_arr<min_l] = 0.
-    Ml_lm[l_arr<min_l] = 0.
+    Cl1_interp = InterpolatedUnivariateSpline(l,Cl1)
+    Cl1_lm = Cl1_interp(l_arr)
+    Cl2_interp = InterpolatedUnivariateSpline(l,Cl2)
+    Cl2_lm = Cl2_interp(l_arr)
+    Cl3_interp = InterpolatedUnivariateSpline(l,Cl3)
+    Cl3_lm = Cl3_interp(l_arr)
+    # Zero out ell = 0 and ell = 1 if min_l==2
+    Cl1_lm[l_arr<min_l] = 0.
+    Cl2_lm[l_arr<min_l] = 0.
+    Cl3_lm[l_arr<min_l] = 0.
 
     # Basic HEALPix utilities
     def to_lm(input_map):
@@ -40,9 +43,9 @@ def Bispectrum(alm, Cl, wlm, Ml, lmax, Nside, Nl, dl, min_l):
     ell_bins = [(l_arr>=min_l+dl*bin1)&(l_arr<min_l+dl*(bin1+1)) for bin1 in range(Nl)]
 
     # Compute I maps
-    I_map1 = [to_map(ell_bins[bin1]*safe_divide(alm,Cl_lm)) for bin1 in range(Nl)]
-    I_map2 = I_map1
-    I_map3 = [to_map(ell_bins[bin1]*safe_divide(wlm,Ml_lm)) for bin1 in range(Nl)]
+    I_map1 = [to_map(ell_bins[bin1]*safe_divide(alm1,Cl1_lm)) for bin1 in range(Nl)]
+    I_map2 = [to_map(ell_bins[bin1]*safe_divide(alm2,Cl2_lm)) for bin1 in range(Nl)]
+    I_map3 = [to_map(ell_bins[bin1]*safe_divide(alm3, Cl3_lm)) for bin1 in range(Nl)]
     print('computed I maps', flush=True)
 
 
@@ -99,13 +102,16 @@ def Bispectrum(alm, Cl, wlm, Ml, lmax, Nside, Nl, dl, min_l):
 
 
     # C and M vectors 
-    Cl_vec = np.array([(li>=2)*(Cl_interp(li)) for li in l])
-    Ml_vec = np.array([(li>=2)*(Ml_interp(li)) for li in l])
-    Cl_vec[Cl_vec==0]=np.inf
-    Ml_vec[Ml_vec==0]=np.inf
+    Cl1_vec = np.array([(li>=2)*(Cl1_interp(li)) for li in l])
+    Cl2_vec = np.array([(li>=2)*(Cl2_interp(li)) for li in l])
+    Cl3_vec = np.array([(li>=2)*(Cl3_interp(li)) for li in l])
+    Cl1_vec[Cl1_vec==0]=np.inf
+    Cl2_vec[Cl2_vec==0]=np.inf
+    Cl3_vec[Cl3_vec==0]=np.inf
     print('got Cl_vec and Ml_vec', flush=True)
-    print('Cl_vec: ', Cl_vec, flush=True)
-    print('Ml_vec: ', Ml_vec, flush=True)
+    print('Cl1_vec: ', Cl1_vec, flush=True)
+    print('Cl2_vec: ', Cl2_vec, flush=True)
+    print('Cl3_vec: ', Cl3_vec, flush=True)
 
 
 
@@ -120,10 +126,11 @@ def Bispectrum(alm, Cl, wlm, Ml, lmax, Nside, Nl, dl, min_l):
     print('ells_in_bin.shape: ', ells_in_bin.shape, flush=True)
     print('tj_arr.shape: ', tj_arr.shape, flush=True)
     print('ells.shape: ', ells.shape, flush=True)
-    print('Cl_vec.shape: ', Cl_vec.shape, flush=True)
-    print('Ml_vec.shape: ', Ml_vec.shape, flush=True)
+    print('Cl1_vec.shape: ', Cl1_vec.shape, flush=True)
+    print('Cl2_vec.shape: ', Cl2_vec.shape, flush=True)
+    print('Cl3_vec.shape: ', Cl3_vec.shape, flush=True)
     print('sym_factors_array.shape: ', sym_factors_array.shape, flush=True)
-    b_denom = 1/(4*np.pi)*np.einsum('ai,bj,ck,ijk,ijk,i,j,k,i,j,k,abc->abc', ells_in_bin, ells_in_bin, ells_in_bin, tj_arr, tj_arr, (2*ells+1), (2*ells+1), (2*ells+1), 1/Cl_vec, 1/Cl_vec, 1/Ml_vec, 1/sym_factors_array, optimize=True)
+    b_denom = 1/(4*np.pi)*np.einsum('ai,bj,ck,ijk,ijk,i,j,k,i,j,k,abc->abc', ells_in_bin, ells_in_bin, ells_in_bin, tj_arr, tj_arr, (2*ells+1), (2*ells+1), (2*ells+1), 1/Cl1_vec, 1/Cl2_vec, 1/Cl3_vec, 1/sym_factors_array, optimize=True)
     print('got b_denom', flush=True)
 
     b_ideal = b_num_ideal/b_denom
@@ -134,12 +141,12 @@ def Bispectrum(alm, Cl, wlm, Ml, lmax, Nside, Nl, dl, min_l):
     return b_ideal
 
 if __name__=="__main__":
-    ellmax = 1000
-    Nside = 512
+    ellmax = 500
+    Nside = 256
     # ellmax = 100
     # Nside = 64
     # Binning parameters
-    dl = 10 # bin width
+    dl = 5 # bin width
     Nl = int(ellmax/dl) # number of bins
     min_l = 0 # minimum l
     # isw_map = hp.read_map('/global/cscratch1/sd/kmsurrao/Correlated-Mask-Power-Spectrum/maps/isw.fits') #for cori
@@ -151,6 +158,6 @@ if __name__=="__main__":
     Cl = hp.alm2cl(alm)
     Ml = hp.alm2cl(wlm)
     print('calling Bispectrum()', flush=True)
-    b_ideal = Bispectrum(alm, Cl, wlm, Ml, ellmax, Nside, Nl, dl, min_l)
-    pickle.dump(b_ideal, open(f'bispectrum_isw_maskisw0p7_ellmax{ellmax}_{Nl}bins.p', 'wb'))
-    print(f'saved bispectrum_isw_maskisw0p7_ellmax{ellmax}_{Nl}bins.p', flush=True)
+    b_ideal = Bispectrum(alm, Cl, np.conj(alm), Cl, np.conj(wlm), Ml, ellmax, Nside, Nl, dl, min_l)
+    pickle.dump(b_ideal, open(f'bispectrum_isw_maskisw0p7_ellmax{ellmax}_{Nl}bins_term3.p', 'wb'))
+    print(f'saved bispectrum_isw_maskisw0p7_ellmax{ellmax}_{Nl}bins_term3.p', flush=True)
