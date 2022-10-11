@@ -99,10 +99,10 @@ def Bispectrum(alm, Cl, wlm, Ml, lmax, Nside, Nl, dl, min_l):
 
 
     # C and M vectors 
-    Cl_vec = np.array([(li>=2)*(Cl_interp(li)) for li in l])
-    Ml_vec = np.array([(li>=2)*(Ml_interp(li)) for li in l])
-    Cl_vec[Cl_vec==0]=np.inf
-    Ml_vec[Ml_vec==0]=np.inf
+    Cl_vec = np.array([(li>=min_l)*(Cl_interp(li)) for li in l])
+    Ml_vec = np.array([(li>=min_l)*(Ml_interp(li)) for li in l])
+    # Cl_vec[Cl_vec==0]=np.inf
+    # Ml_vec[Ml_vec==0]=np.inf
     print('got Cl_vec and Ml_vec', flush=True)
     print('Cl_vec: ', Cl_vec, flush=True)
     print('Ml_vec: ', Ml_vec, flush=True)
@@ -129,17 +129,18 @@ def Bispectrum(alm, Cl, wlm, Ml, lmax, Nside, Nl, dl, min_l):
     b_ideal = b_num_ideal/b_denom
     b_ideal[b_ideal==np.inf]=0.
     b_ideal[b_ideal==-np.inf]=0.
+    b_ideal = np.nan_to_num(b_ideal)
     print('b_ideal: ', b_ideal, flush=True)
     print('b_ideal.shape: ', b_ideal.shape, flush=True)
     return b_ideal
 
 if __name__=="__main__":
-    ellmax = 1000
+    ellmax = 500
     Nside = 512
     # ellmax = 100
     # Nside = 64
     # Binning parameters
-    dl = 10 # bin width
+    dl = 5 # bin width
     Nl = int(ellmax/dl) # number of bins
     min_l = 0 # minimum l
     # isw_map = hp.read_map('/global/cscratch1/sd/kmsurrao/Correlated-Mask-Power-Spectrum/maps/isw.fits') #for cori
