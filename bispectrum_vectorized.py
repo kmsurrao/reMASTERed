@@ -2,9 +2,11 @@ import numpy as np
 import healpy as hp
 import pickle
 from scipy.interpolate import InterpolatedUnivariateSpline
+import time
+start_time = time.time()
 
 
-def Bispectrum(alm1, Cl1, alm2, Cl2, alm3, Cl3, lmax, Nside, Nl, dl, min_l):
+def Bispectrum(inp, alm1, Cl1, alm2, Cl2, alm3, Cl3, lmax, Nside, Nl, dl, min_l, term):
 
     print("binned lmax: %d"%(min_l+dl*Nl), flush=True)
     A_pix = 4.*np.pi/(12*Nside**2)
@@ -136,8 +138,11 @@ def Bispectrum(alm1, Cl1, alm2, Cl2, alm3, Cl3, lmax, Nside, Nl, dl, min_l):
     b_ideal = b_num_ideal/b_denom
     b_ideal[b_ideal==np.inf]=0.
     b_ideal[b_ideal==-np.inf]=0.
+    b_ideal = np.nan_to_num(b_ideal)
     print('b_ideal: ', b_ideal, flush=True)
     print('b_ideal.shape: ', b_ideal.shape, flush=True)
+    pickle.dump(b_ideal, open(f'bispectra/bispectrum_{inp.comp}_{inp.cut}_ellmax{lmax}_{Nl}bins_term{term}.p', 'wb'))
+    print(f'saved bispectra/bispectrum_{inp.comp}_{inp.cut}_ellmax{lmax}_{Nl}bins_term{term}.p', flush=True)
     return b_ideal
 
 if __name__=="__main__":
@@ -158,6 +163,5 @@ if __name__=="__main__":
     Cl = hp.alm2cl(alm)
     Ml = hp.alm2cl(wlm)
     print('calling Bispectrum()', flush=True)
-    b_ideal = Bispectrum(alm, Cl, np.conj(alm), Cl, np.conj(wlm), Ml, ellmax, Nside, Nl, dl, min_l)
-    pickle.dump(b_ideal, open(f'bispectrum_isw_maskisw0p7_ellmax{ellmax}_{Nl}bins_term3.p', 'wb'))
-    print(f'saved bispectrum_isw_maskisw0p7_ellmax{ellmax}_{Nl}bins_term3.p', flush=True)
+    b_ideal = Bispectrum(alm, Cl, np.conj(alm), Cl, wlm, Ml, ellmax, Nside, Nl, dl, min_l)
+    print("--- %s seconds ---" % (time.time() - start_time), flush=True)
