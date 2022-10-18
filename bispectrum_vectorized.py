@@ -3,10 +3,17 @@ import healpy as hp
 import pickle
 from scipy.interpolate import InterpolatedUnivariateSpline
 import time
+import os.path
 start_time = time.time()
 
 
-def Bispectrum(inp, alm1, Cl1, alm2, Cl2, alm3, Cl3, lmax, Nside, Nl, dl, min_l, term):
+def Bispectrum(alm1, Cl1, alm2, Cl2, alm3, Cl3, lmax, Nside, Nl, dl, min_l, term, inp=None):
+
+    #check if bispectrum already exists
+    if inp and os.path.exists(f'bispectra/bispectrum_{inp.comp}_{inp.cut}_ellmax{lmax}_{Nl}bins_term{term}.p'):
+        print('bispectrum already exists', flush=True)
+        bispectrum = pickle.load(open(f'bispectra/bispectrum_{inp.comp}_{inp.cut}_ellmax{lmax}_{Nl}bins_term{term}.p', 'rb'))
+        return bispectrum
 
     print("binned lmax: %d"%(min_l+dl*Nl), flush=True)
     A_pix = 4.*np.pi/(12*Nside**2)
@@ -111,11 +118,6 @@ def Bispectrum(inp, alm1, Cl1, alm2, Cl2, alm3, Cl3, lmax, Nside, Nl, dl, min_l,
     Cl2_vec[Cl2_vec==0]=np.inf
     Cl3_vec[Cl3_vec==0]=np.inf
     print('got Cl_vec and Ml_vec', flush=True)
-    print('Cl1_vec: ', Cl1_vec, flush=True)
-    print('Cl2_vec: ', Cl2_vec, flush=True)
-    print('Cl3_vec: ', Cl3_vec, flush=True)
-
-
 
 
     # compute denominator     
@@ -125,13 +127,6 @@ def Bispectrum(inp, alm1, Cl1, alm2, Cl2, alm3, Cl3, lmax, Nside, Nl, dl, min_l,
     for bin in range(Nl):
         ells_in_bin[bin][min_l+bin*dl : min_l+(bin+1)*dl] = 1
     print('got ells_in_bin', flush=True)
-    print('ells_in_bin.shape: ', ells_in_bin.shape, flush=True)
-    print('tj_arr.shape: ', tj_arr.shape, flush=True)
-    print('ells.shape: ', ells.shape, flush=True)
-    print('Cl1_vec.shape: ', Cl1_vec.shape, flush=True)
-    print('Cl2_vec.shape: ', Cl2_vec.shape, flush=True)
-    print('Cl3_vec.shape: ', Cl3_vec.shape, flush=True)
-    print('sym_factors_array.shape: ', sym_factors_array.shape, flush=True)
     b_denom = 1/(4*np.pi)*np.einsum('ai,bj,ck,ijk,ijk,i,j,k,i,j,k,abc->abc', ells_in_bin, ells_in_bin, ells_in_bin, tj_arr, tj_arr, (2*ells+1), (2*ells+1), (2*ells+1), 1/Cl1_vec, 1/Cl2_vec, 1/Cl3_vec, 1/sym_factors_array, optimize=True)
     print('got b_denom', flush=True)
 
@@ -141,17 +136,16 @@ def Bispectrum(inp, alm1, Cl1, alm2, Cl2, alm3, Cl3, lmax, Nside, Nl, dl, min_l,
     b_ideal = np.nan_to_num(b_ideal)
     print('b_ideal: ', b_ideal, flush=True)
     print('b_ideal.shape: ', b_ideal.shape, flush=True)
-    pickle.dump(b_ideal, open(f'bispectra/bispectrum_{inp.comp}_{inp.cut}_ellmax{lmax}_{Nl}bins_term{term}.p', 'wb'))
-    print(f'saved bispectra/bispectrum_{inp.comp}_{inp.cut}_ellmax{lmax}_{Nl}bins_term{term}.p', flush=True)
+    if inp:
+        pickle.dump(b_ideal, open(f'bispectra/bispectrum_{inp.comp}_{inp.cut}_ellmax{lmax}_{Nl}bins_term{term}.p', 'wb'))
+        print(f'saved bispectra/bispectrum_{inp.comp}_{inp.cut}_ellmax{lmax}_{Nl}bins_term{term}.p', flush=True)
     return b_ideal
 
 if __name__=="__main__":
-    ellmax = 500
-    Nside = 256
-    # ellmax = 100
-    # Nside = 64
+    ellmax = 50
+    Nside = 32
     # Binning parameters
-    dl = 5 # bin width
+    dl = 10 # bin width
     Nl = int(ellmax/dl) # number of bins
     min_l = 0 # minimum l
     # isw_map = hp.read_map('/global/cscratch1/sd/kmsurrao/Correlated-Mask-Power-Spectrum/maps/isw.fits') #for cori
@@ -162,6 +156,6 @@ if __name__=="__main__":
     wlm = hp.map2alm(mask, lmax=ellmax)
     Cl = hp.alm2cl(alm)
     Ml = hp.alm2cl(wlm)
-    print('calling Bispectrum()', flush=True)
-    b_ideal = Bispectrum(alm, Cl, np.conj(alm), Cl, wlm, Ml, ellmax, Nside, Nl, dl, min_l)
+    print('calling Bispectrum() term 4', flush=True)
+    b_ideal = Bispectrum(alm, Cl, np.conj(alm), Cl, wlm, Ml, ellmax, Nside, Nl, dl, min_l, 4)
     print("--- %s seconds ---" % (time.time() - start_time), flush=True)
