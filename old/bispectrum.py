@@ -2,6 +2,8 @@ import numpy as np
 import healpy as hp
 import pickle
 from scipy.interpolate import InterpolatedUnivariateSpline
+import time
+start_time = time.time()
 
 
 def Bispectrum(alm1, Cl1, alm2, Cl2, alm3, Cl3, lmax, Nside, Nl, dl, min_l):
@@ -59,6 +61,10 @@ def Bispectrum(alm1, Cl1, alm2, Cl2, alm3, Cl3, lmax, Nside, Nl, dl, min_l):
         l3 = min_l+(bin3+0.5)*dl
         if l3<abs(l1-l2) or l3>l1+l2:
             return 0
+        elif l2<abs(l1-l3) or l2>l1+l3:
+            return 0
+        elif l1<abs(l2-l3) or l1>l2+l3:
+            return 0
         else:
             return 1
 
@@ -83,8 +89,7 @@ def Bispectrum(alm1, Cl1, alm2, Cl2, alm3, Cl3, lmax, Nside, Nl, dl, min_l):
                     
                 # compute numerators
                 # b_num_ideal.append(A_pix*np.sum(I_map1[bin1]*I_map2[bin2]*I_map3[bin3])/sym)
-                b_num_ideal[bin1,bin2,bin3] = (A_pix*np.sum(I_map1[bin1]*I_map2[bin2]*I_map3[bin3])/sym) 
-                b_num_ideal[bin2,bin1,bin3] = b_num_ideal[bin1,bin2,bin3]        
+                b_num_ideal[bin1,bin2,bin3] = (A_pix*np.sum(I_map1[bin1]*I_map2[bin2]*I_map3[bin3])/sym)        
                 
     # b_num_ideal = np.asarray(b_num_ideal)
                 
@@ -127,15 +132,11 @@ def Bispectrum(alm1, Cl1, alm2, Cl2, alm3, Cl3, lmax, Nside, Nl, dl, min_l):
                         for l3 in range(min_l+bin3*dl,min_l+(bin3+1)*dl):
                             if (-1)**(l1+l2+l3)==-1: continue # 3j = 0 here
                             if l3<abs(l1-l2) or l3>l1+l2: continue
-                            # if l1>ellmax or l2>ellmax or l3>ellmax: continue
+                            if l2<abs(l1-l3) or l2>l1+l3: continue
+                            if l1<abs(l2-l3) or l1>l2+l3: continue
                             tj = tj_arr[l1,l2,l3]
-                            # print('len(Ml_vec): ', len(Ml_vec), flush=True)
-                            # print(l3)
                             value += tj**2*(2.*l1+1.)*(2.*l2+1.)*(2.*l3+1.)/(4.*np.pi)/Cl1_vec[l1]/Cl2_vec[l2]/Cl3_vec[l3]/sym_factor[count]
-                # b_denom.append(value)
                 b_denom[bin1,bin2,bin3] = value
-                b_denom[bin2,bin1,bin3] = value
-    # b_denom = np.asarray(b_denom)
 
     b_ideal = b_num_ideal/b_denom
     print('b_ideal: ', b_ideal, flush=True)
