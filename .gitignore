@@ -1,8 +1,13 @@
+.ipynb_checkpoints/
+__pycache__/
 slurm-*.out
 *.sh*
 images/*
+masks/*
+bispectra/*
 *.png
 *sbatch*
 *.p
 *.fits
 bispectrum_plots/*
+maps/*

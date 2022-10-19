@@ -1,9 +1,11 @@
-ellmax: 500 #ellmax for power spectra
-nside: 256 #nside of maps for bispectrum calculation
-dl: 5 #bin width for bispectrum binning
-comp: 'ISW' #choose 'ISW' or 'CMB'
-cut: 0.7 #mask regions whose values are above cut*(sigma of map)
+ellmax: 100 #ellmax for power spectra
+nside: 64 #nside of maps for bispectrum calculation
+dl: 2 #bin width for bispectrum binning
+comp: 'CMB' #choose 'ISW' or 'CMB'
+cut: 1.6 #mask regions whose values are above cut*(sigma of map)
 aposcale: 2.5 #apodization scale for NaMaster for mask, original was 2.5
+cut_high: 1 #set to 0 if only want to mask values below cut
+cut_low: 0 #set to 0 if only want to mask values above cut
 
-map_file: 'isw.fits' #file for component map
+map_file: '/moto/hill/users/kms2320/websky_maps/cmb_lensed_nside1024_K.fits' #file for component map, for isw 'isw.fits'
 wigner_file: '/moto/hill/users/kms2320/wigner3j_ellmax1000.p' #file containing wigner-3j symbols with zero m values, indexed by l1,l2,l3

@@ -29,6 +29,8 @@ class Info(object):
         assert type(self.comp) is str and self.comp in ['ISW', 'CMB'], "comp"
         self.cut = p['cut']
         self.aposcale = p['aposcale']
+        self.cut_high = p['cut_high']
+        self.cut_low = p['cut_low']
         
         self.map_file = p['map_file']
         assert type(self.map_file) is str

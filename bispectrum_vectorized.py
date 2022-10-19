@@ -88,11 +88,13 @@ def Bispectrum(alm1, Cl1, alm2, Cl2, alm3, Cl3, lmax, Nside, Nl, dl, min_l, term
         computes symmetry factors 
         '''
         output = np.ones((Nl, Nl, Nl))
-        bins1 = np.arange(Nl)
-        bins2 = np.arange(Nl)
-        bins3 = np.arange(Nl)
-        output[np.logical_or(np.logical_or(bins1==bins2, bins2==bins3), bins1==bins3)] = 2
-        output[np.logical_and(bins1==bins2, bins2==bins3)] = 6
+        for bin1 in range(Nl):
+            for bin2 in range(Nl):
+                for bin3 in range(Nl):
+                    if bin1==bin2 or bin2==bin3 or bin3==bin1:
+                        output[bin1,bin2,bin3] = 2
+                    if bin1==bin2==bin3:
+                        output[bin1,bin2,bin3] = 6
         return output
 
 
@@ -134,7 +136,7 @@ def Bispectrum(alm1, Cl1, alm2, Cl2, alm3, Cl3, lmax, Nside, Nl, dl, min_l, term
     b_ideal[b_ideal==np.inf]=0.
     b_ideal[b_ideal==-np.inf]=0.
     b_ideal = np.nan_to_num(b_ideal)
-    print('b_ideal: ', b_ideal, flush=True)
+    # print('b_ideal: ', b_ideal, flush=True)
     print('b_ideal.shape: ', b_ideal.shape, flush=True)
     if inp:
         pickle.dump(b_ideal, open(f'bispectra/bispectrum_{inp.comp}_{inp.cut}_ellmax{lmax}_{Nl}bins_term{term}.p', 'wb'))
@@ -142,20 +144,59 @@ def Bispectrum(alm1, Cl1, alm2, Cl2, alm3, Cl3, lmax, Nside, Nl, dl, min_l, term
     return b_ideal
 
 if __name__=="__main__":
-    ellmax = 50
-    Nside = 32
-    # Binning parameters
-    dl = 10 # bin width
-    Nl = int(ellmax/dl) # number of bins
-    min_l = 0 # minimum l
-    # isw_map = hp.read_map('/global/cscratch1/sd/kmsurrao/Correlated-Mask-Power-Spectrum/maps/isw.fits') #for cori
-    # mask = hp.read_map('/global/homes/k/kmsurrao/Correlated-Mask-Power-Spectrum/mask_isw_threshold.fits') #for cori
-    isw_map = hp.read_map('isw.fits') #for moto
-    mask = hp.read_map('mask_isw_threshold.fits') #for moto
-    alm = hp.map2alm(isw_map, lmax=ellmax)
-    wlm = hp.map2alm(mask, lmax=ellmax)
-    Cl = hp.alm2cl(alm)
-    Ml = hp.alm2cl(wlm)
-    print('calling Bispectrum() term 4', flush=True)
-    b_ideal = Bispectrum(alm, Cl, np.conj(alm), Cl, wlm, Ml, ellmax, Nside, Nl, dl, min_l, 4)
-    print("--- %s seconds ---" % (time.time() - start_time), flush=True)
+    # ellmax = 50
+    # Nside = 32
+    # # Binning parameters
+    # dl = 10 # bin width
+    # Nl = int(ellmax/dl) # number of bins
+    # min_l = 0 # minimum l
+    # # isw_map = hp.read_map('/global/cscratch1/sd/kmsurrao/Correlated-Mask-Power-Spectrum/maps/isw.fits') #for cori
+    # # mask = hp.read_map('/global/homes/k/kmsurrao/Correlated-Mask-Power-Spectrum/mask_isw_threshold.fits') #for cori
+    # isw_map = hp.read_map('isw.fits') #for moto
+    # mask = hp.read_map('mask_isw_threshold.fits') #for moto
+    # alm = hp.map2alm(isw_map, lmax=ellmax)
+    # wlm = hp.map2alm(mask, lmax=ellmax)
+    # Cl = hp.alm2cl(alm)
+    # Ml = hp.alm2cl(wlm)
+    # print('calling Bispectrum() term 4', flush=True)
+    # b_ideal = Bispectrum(alm, Cl, np.conj(alm), Cl, wlm, Ml, ellmax, Nside, Nl, dl, min_l, 4)
+    # print("--- %s seconds ---" % (time.time() - start_time), flush=True)
+
+
+    import matplotlib.pyplot as plt
+
+    plt.clf()
+
+    for dl in [1,5,10]: #bin width
+        ellmax = 50
+        Nside = 32
+        # Binning parameters
+        Nl = int(ellmax/dl) # number of bins
+        min_l = 0 # minimum l
+        # isw_map = hp.read_map('/global/cscratch1/sd/kmsurrao/Correlated-Mask-Power-Spectrum/maps/isw.fits') #for cori
+        # mask = hp.read_map('/global/homes/k/kmsurrao/Correlated-Mask-Power-Spectrum/mask_isw_threshold.fits') #for cori
+        isw_map = hp.read_map('isw.fits') #for moto
+        mask = hp.read_map('mask_isw_threshold.fits') #for moto
+        alm = hp.map2alm(isw_map, lmax=ellmax)
+        wlm = hp.map2alm(mask, lmax=ellmax)
+        Cl = hp.alm2cl(alm)
+        Ml = hp.alm2cl(wlm)
+        print('calling Bispectrum() term 4', flush=True)
+        b_ideal = Bispectrum(alm, Cl, np.conj(alm), Cl, wlm, Ml, ellmax, Nside, Nl, dl, min_l, 4)
+        print("--- %s seconds ---" % (time.time() - start_time), flush=True)
+
+        bins = np.arange(Nl)
+        bins_to_ells = min_l+(bins+0.5)*dl
+        print(bins_to_ells, flush=True)
+        l1, l2= 22.5,22.5
+        if dl==1:
+            b1, b2 =22, 22
+        elif dl==5:
+            b1, b2 =4, 4
+        elif dl==10:
+            b1, b2 =2, 2
+        plt.plot(bins_to_ells, b_ideal[b1,b2], 'o', label=f'bin width {dl}')
+    plt.legend()
+    plt.xlabel(r'$\ell$')
+    plt.ylabel(r'$b_{\ell}$')
+    plt.savefig('check_bispectrum_binning.png')
