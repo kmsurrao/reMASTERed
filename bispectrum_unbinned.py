@@ -9,12 +9,6 @@ start_time = time.time()
 
 def Bispectrum(alm1, Cl1, alm2, Cl2, alm3, Cl3, lmax, Nside, term, inp=None):
 
-    #check if bispectrum already exists
-    if inp and os.path.exists(f'bispectra/bispectrum_{inp.comp}_{inp.cut}_ellmax{lmax}_term{term}.p'):
-        print('bispectrum already exists', flush=True)
-        bispectrum = pickle.load(open(f'bispectra/bispectrum_{inp.comp}_{inp.cut}_ellmax{lmax}_term{term}.p', 'rb'))
-        return bispectrum
-
     A_pix = 4.*np.pi/(12*Nside**2)
 
     # Define ell arrays
@@ -28,12 +22,13 @@ def Bispectrum(alm1, Cl1, alm2, Cl2, alm3, Cl3, lmax, Nside, term, inp=None):
     Cl3_interp = InterpolatedUnivariateSpline(l,Cl3)
     Cl3_lm = Cl3_interp(l_arr)
 
+    # Zero out ell = 0 and ell = 1
+    Cl1_lm[l_arr<2] = 0.
+    Cl2_lm[l_arr<2] = 0.
+    Cl3_lm[l_arr<2] = 0.
+
 
     # Basic HEALPix utilities
-    def to_lm(input_map):
-        """Convert from map-space to harmonic-space"""
-        return hp.map2alm(input_map,pol=False)
-
     def to_map(input_lm):
         """Convert from harmonic-space to map-space"""
         return hp.alm2map(input_lm,Nside,pol=False)
@@ -46,20 +41,16 @@ def Bispectrum(alm1, Cl1, alm2, Cl2, alm3, Cl3, lmax, Nside, term, inp=None):
 
     # Define ell bins
     ell_bins = [(l_arr==l) for l in range(lmax+1)]
-    print('ell_bins: ', ell_bins, flush=True)
 
     # Compute I maps
     I_map1 = [to_map(ell_bins[bin1]*safe_divide(alm1,Cl1_lm)) for bin1 in range(len(ell_bins))]
     I_map2 = [to_map(ell_bins[bin1]*safe_divide(alm2,Cl2_lm)) for bin1 in range(len(ell_bins))]
     I_map3 = [to_map(ell_bins[bin1]*safe_divide(alm3, Cl3_lm)) for bin1 in range(len(ell_bins))]
-    print('computed I maps', flush=True)
 
 
     # Load pre-computed 3j symbols
     assert lmax<=1000, "Higher-l 3j symbols not yet precomputed!"
-    # tj_arr = pickle.load(open('/global/homes/k/kmsurrao/NILC-Parameter-Pipeline/wigner3j_ellmax1000.p', 'rb'))[:lmax+1,:lmax+1,:lmax+1] #for cori
-    tj_arr = pickle.load(open('/moto/hill/users/kms2320/wigner3j_ellmax1000.p', 'rb'))[:lmax+1,:lmax+1,:lmax+1] #for moto
-    print('loaded tj_arr', flush=True)
+    tj_arr = pickle.load(open(inp.wigner_file, 'rb'))[:lmax+1,:lmax+1,:lmax+1] #for moto
 
     def check_triangle(lmax):
         """Array is one if modes satisfy the even-parity triangle conditions, or zero else.
@@ -94,9 +85,7 @@ def Bispectrum(alm1, Cl1, alm2, Cl2, alm3, Cl3, lmax, Nside, term, inp=None):
     # Combine to find numerator
     # notation: a=bin1, b=bin2, c=bin3, n indexes pixel
     check_triangle_array = check_triangle(lmax)
-    print('got check_triangle_array', flush=True)
     sym_factors_array = get_sym_factors(lmax)
-    print('got sym_factors_array', flush=True)
     b_num_ideal = A_pix*np.einsum('ijk,ijk,in,jn,kn->ijk', check_triangle_array, 1/sym_factors_array, I_map1, I_map2, I_map3, optimize=True)
     print('got b_num_ideal', flush=True)
 
@@ -108,7 +97,9 @@ def Bispectrum(alm1, Cl1, alm2, Cl2, alm3, Cl3, lmax, Nside, term, inp=None):
     Cl1_vec[Cl1_vec==0]=np.inf
     Cl2_vec[Cl2_vec==0]=np.inf
     Cl3_vec[Cl3_vec==0]=np.inf
-    print('got Cl_vec and Ml_vec', flush=True)
+    Cl1_vec[Cl1_vec==1]=np.inf
+    Cl2_vec[Cl2_vec==1]=np.inf
+    Cl3_vec[Cl3_vec==1]=np.inf
 
 
     # compute denominator     
@@ -121,11 +112,7 @@ def Bispectrum(alm1, Cl1, alm2, Cl2, alm3, Cl3, lmax, Nside, term, inp=None):
     b_ideal[b_ideal==np.inf]=0.
     b_ideal[b_ideal==-np.inf]=0.
     b_ideal = np.nan_to_num(b_ideal)
-    # print('b_ideal: ', b_ideal, flush=True)
     print('b_ideal.shape: ', b_ideal.shape, flush=True)
-    if inp:
-        pickle.dump(b_ideal, open(f'bispectra/bispectrum_{inp.comp}_{inp.cut}_ellmax{lmax}_term{term}.p', 'wb'))
-        print(f'saved bispectra/bispectrum_{inp.comp}_{inp.cut}_ellmax{lmax}_term{term}.p', flush=True)
     return b_ideal
 
 if __name__=="__main__":
@@ -142,24 +129,3 @@ if __name__=="__main__":
     print('calling Bispectrum() term 4', flush=True)
     b_ideal = Bispectrum(alm, Cl, np.conj(alm), Cl, wlm, Ml, ellmax, Nside, 4)
     print("--- %s seconds ---" % (time.time() - start_time), flush=True)
-
-
-    # import matplotlib.pyplot as plt
-
-    # plt.clf()
-
-    # ellmax = 50
-    # Nside = 32
-    # # isw_map = hp.read_map('/global/cscratch1/sd/kmsurrao/Correlated-Mask-Power-Spectrum/maps/isw.fits') #for cori
-    # # mask = hp.read_map('/global/homes/k/kmsurrao/Correlated-Mask-Power-Spectrum/mask_isw_threshold.fits') #for cori
-    # isw_map = hp.read_map('isw.fits') #for moto
-    # mask = hp.read_map('mask_isw_threshold.fits') #for moto
-    # alm = hp.map2alm(isw_map, lmax=ellmax)
-    # wlm = hp.map2alm(mask, lmax=ellmax)
-    # Cl = hp.alm2cl(alm)
-    # Ml = hp.alm2cl(wlm)
-    # print('calling Bispectrum() term 4', flush=True)
-    # b_ideal = Bispectrum(alm, Cl, np.conj(alm), Cl, wlm, Ml, ellmax, Nside, 4)
-    # print("--- %s seconds ---" % (time.time() - start_time), flush=True)
-
-

@@ -19,10 +19,13 @@ class Info(object):
         self.input_file = input_file
         p = read_dict_from_yaml(self.input_file)
 
+        self.nsims = p['nsims']
+        assert type(self.nsims) is int and self.nsims>=0, "nsims"
         self.ellmax = p['ellmax']
         assert type(self.ellmax) is int and self.ellmax>=0, "ellmax"
         self.nside = p['nside']
         assert type(self.nside) is int and (self.nside & (self.nside-1) == 0) and self.nside != 0, "nside"
+        assert self.ellmax <= 3*self.nside-1, "ellmax > 3*nside-1"
         self.dl = p['dl']
         assert type(self.dl) is int and self.dl>=0, "dl"
         self.comp = p['comp']
