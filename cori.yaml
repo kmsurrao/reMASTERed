@@ -1,6 +1,7 @@
 nsims: 4
 ellmax: 500 #ellmax for power spectra
 nside: 256 #nside of maps for bispectrum calculation
+nside_for_masking: 64 #nside for finding regions of map to threshold
 dl: 5 #bin width for bispectrum binning
 comp: 'ISW' #choose 'ISW' or 'CMB'
 cut: 0.7 #mask regions whose values are above cut*(sigma of map)

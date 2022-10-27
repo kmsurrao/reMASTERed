@@ -3,12 +3,14 @@ import healpy as hp
 import matplotlib.pyplot as plt
 import pickle
 import subprocess
+import os
 
 
 def compare_master(inp, master_lhs, wlm_00, Cl, Ml, Wl, bispectrum, env):
 
-    base_dir = f'images/{inp.comp}_cut{inp.cut}_high{inp.cut_high}_low{inp.cut_low}_ellmax{inp.ellmax}'
-    subprocess.call(f'mkdir {base_dir}', shell=True, env=env)
+    base_dir = f'images/{inp.comp}_cut{inp.cut}_high{inp.cut_high}_low{inp.cut_low}_ellmax{inp.ellmax}_nsims{inp.nsims}'
+    if not os.path.isdir(base_dir):
+        subprocess.call(f'mkdir {base_dir}', shell=True, env=env)
 
     ellmax = inp.ellmax
 
@@ -47,7 +49,7 @@ def compare_master(inp, master_lhs, wlm_00, Cl, Ml, Wl, bispectrum, env):
     #make comparison plot of masked_map_cl and master_cl
     ells = np.arange(ellmax+1)
     plt.clf()
-    plt.plot(ells[10:], (ells*(ells+1)*term1/(2*np.pi))[10:], label='term1 (original MASTER)')
+    plt.plot(ells[10:], (ells*(ells+1)*term1/(2*np.pi))[10:], label='term1 (original MASTER)', color='c')
     plt.plot(ells[10:], (ells*(ells+1)*term2/(2*np.pi))[10:], label='term2', linestyle='dotted')
     plt.plot(ells[10:], (ells*(ells+1)*term3/(2*np.pi))[10:], label='term3', color='r')
     plt.plot(ells[10:], (ells*(ells+1)*master_lhs/(2*np.pi))[10:], label='MASTER LHS', color='g')

@@ -4,7 +4,7 @@
 #SBATCH --account=hill # The account name for the job.
 #SBATCH --job-name=MyCondaEnv # The job name.
 #SBATCH -c 8 # The number of cpu cores to use.
-#SBATCH --time=0-0:30 # The time the job will take to run.
+#SBATCH --time=0-3:30 # The time the job will take to run.
 #SBATCH --mem-per-cpu=20gb # The memory the job will use per cpu core.
 
 

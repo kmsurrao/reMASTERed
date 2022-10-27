@@ -25,7 +25,6 @@ def mask_above_cut(inp, cut_high, cut_low, map_, nside, nside_for_masking):
 def gen_mask(inp, map_):
    
     Nl = int((inp.ellmax+1)/inp.dl)
-    nside_for_masking = inp.nside//2
     ells = np.arange(inp.ellmax+1)
 
     #create mask
@@ -33,5 +32,5 @@ def gen_mask(inp, map_):
     std_dev = np.std(map_)
     cut_high = mean + inp.cut*std_dev
     cut_low = mean - inp.cut*std_dev
-    mask = mask_above_cut(inp, cut_high, cut_low, map_, inp.nside, nside_for_masking)
+    mask = mask_above_cut(inp, cut_high, cut_low, map_, inp.nside, inp.nside_for_masking)
     return mask
