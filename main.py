@@ -50,15 +50,12 @@ def one_sim(inp, sim):
     mask_no_monopole = hp.remove_monopole(mask)
     wlm_no_monopole = hp.map2alm(mask_no_monopole, lmax=inp.ellmax)
     Ml_no_monopole = hp.alm2cl(wlm_no_monopole)
-    # bispectrum_term3 = Bispectrum(alm, Cl, np.conj(alm), Cl, np.conj(wlm_no_monopole), Ml_no_monopole, inp.ellmax, inp.nside, 3, inp)
-    # bispectrum_term4 = Bispectrum(alm, Cl, np.conj(alm), Cl, wlm_no_monopole, Ml_no_monopole, inp.ellmax, inp.nside, 4, inp)
-    bispectrum_term3 = Bispectrum(alm, Cl, alm, Cl, wlm_no_monopole, Ml_no_monopole, inp.ellmax, inp.nside, 3, inp)
-    bispectrum_term4 = Bispectrum(alm, Cl, alm, Cl, wlm_no_monopole, Ml_no_monopole, inp.ellmax, inp.nside, 4, inp)
+    bispectrum = Bispectrum(alm, Cl, alm, Cl, wlm_no_monopole, Ml_no_monopole, inp.ellmax, inp.nside, inp)
 
     #get MASTER LHS
     master_lhs = hp.anafast(map_*mask, lmax=inp.ellmax)
 
-    return [master_lhs, wlm[0], Cl, Ml, Wl, bispectrum_term3, bispectrum_term4]
+    return [master_lhs, wlm[0], Cl, Ml, Wl, bispectrum]
 
 
 #make plots of MASTER equation with new terms
@@ -71,12 +68,11 @@ wlm_00 = np.mean(np.array([res[1] for res in results]), axis=0)
 Cl = np.mean(np.array([res[2] for res in results]), axis=0)
 Ml = np.mean(np.array([res[3] for res in results]), axis=0)
 Wl = np.mean(np.array([res[4] for res in results]), axis=0)
-bispectrum_term3 = np.mean(np.array([res[5] for res in results]), axis=0)
-bispectrum_term4 = np.mean(np.array([res[6] for res in results]), axis=0)
+bispectrum = np.mean(np.array([res[5] for res in results]), axis=0)
 
 
 print('***********************************************************', flush=True)
 print('Starting MASTER comparison', flush=True)
-compare_master(inp, master_lhs, wlm_00, Cl, Ml, Wl, bispectrum_term3, bispectrum_term4, my_env)
+compare_master(inp, master_lhs, wlm_00, Cl, Ml, Wl, bispectrum, my_env)
 
 print("--- %s seconds ---" % (time.time() - start_time), flush=True)

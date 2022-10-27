@@ -7,7 +7,7 @@ import os.path
 start_time = time.time()
 
 
-def Bispectrum(alm1, Cl1, alm2, Cl2, alm3, Cl3, lmax, Nside, term, inp=None):
+def Bispectrum(alm1, Cl1, alm2, Cl2, alm3, Cl3, lmax, Nside, inp=None):
 
     A_pix = 4.*np.pi/(12*Nside**2)
 
@@ -126,6 +126,6 @@ if __name__=="__main__":
     wlm = hp.map2alm(mask, lmax=ellmax)
     Cl = hp.alm2cl(alm)
     Ml = hp.alm2cl(wlm)
-    print('calling Bispectrum() term 4', flush=True)
-    b_ideal = Bispectrum(alm, Cl, np.conj(alm), Cl, wlm, Ml, ellmax, Nside, 4)
+    print('calling Bispectrum()', flush=True)
+    b_ideal = Bispectrum(alm, Cl, alm, Cl, wlm, Ml, ellmax, Nside)
     print("--- %s seconds ---" % (time.time() - start_time), flush=True)

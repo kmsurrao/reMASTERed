@@ -5,9 +5,9 @@ import pickle
 import subprocess
 
 
-def compare_master(inp, master_lhs, wlm_00, Cl, Ml, Wl, bispectrum_term3, bispectrum_term4, env):
+def compare_master(inp, master_lhs, wlm_00, Cl, Ml, Wl, bispectrum, env):
 
-    base_dir = f'images/{inp.comp}_cut{inp.cut}_high{inp.cut_high}_low{inp.cut_low}'
+    base_dir = f'images/{inp.comp}_cut{inp.cut}_high{inp.cut_high}_low{inp.cut_low}_ellmax{inp.ellmax}'
     subprocess.call(f'mkdir {base_dir}', shell=True, env=env)
 
     ellmax = inp.ellmax
@@ -40,9 +40,8 @@ def compare_master(inp, master_lhs, wlm_00, Cl, Ml, Wl, bispectrum_term3, bispec
     l3 = np.arange(ellmax+1)
     term1 = float(1/(4*np.pi))*np.einsum('a,b,lab,lab,a,b->l',2*l2+1,2*l3+1,wigner,wigner,Cl,Ml,optimize=True)
     term2 = float(1/(4*np.pi))*np.einsum('a,b,lab,lab,a,b->l',2*l2+1,2*l3+1,wigner,wigner,Wl,Wl,optimize=True)
-    term3 = float(1/(4*np.pi)**1.5)*wlm_00*np.einsum('a,b,lab,lab,lab->l',2*l2+1,2*l3+1,wigner,wigner,bispectrum_term3,optimize=True)
-    term4 = float(1/(4*np.pi)**1.5)*wlm_00*np.einsum('a,b,lab,lab,lab->l',2*l2+1,2*l3+1,wigner,wigner,bispectrum_term4,optimize=True)
-    master_cl = (term1 + term2 + term3 + term4)
+    term3 = 2.*float(1/(4*np.pi)**1.5)*wlm_00*np.einsum('a,b,lab,lab,lab->l',2*l2+1,2*l3+1,wigner,wigner,bispectrum,optimize=True)
+    master_cl = (term1 + term2 + term3)
 
 
     #make comparison plot of masked_map_cl and master_cl
@@ -50,12 +49,9 @@ def compare_master(inp, master_lhs, wlm_00, Cl, Ml, Wl, bispectrum_term3, bispec
     plt.clf()
     plt.plot(ells[10:], (ells*(ells+1)*term1/(2*np.pi))[10:], label='term1 (original MASTER)')
     plt.plot(ells[10:], (ells*(ells+1)*term2/(2*np.pi))[10:], label='term2', linestyle='dotted')
-    plt.plot(ells[10:], (ells*(ells+1)*term3/(2*np.pi))[10:], label='term3')
-    plt.plot(ells[10:], (ells*(ells+1)*term4/(2*np.pi))[10:], label='term4')
-    plt.plot(ells[10:], (ells*(ells+1)*master_lhs/(2*np.pi))[10:], label='MASTER LHS')
-    plt.plot(ells[10:], (ells*(ells+1)*master_cl/(2*np.pi))[10:], label='Modified MASTER RHS', linestyle='dotted')
-    smoothed_master_cl = np.convolve(master_cl, np.ones(10)/10, mode='same')
-    plt.plot(ells[10:], (ells*(ells+1)*smoothed_master_cl/(2*np.pi))[10:], label='Smoothed Modified MASTER RHS')
+    plt.plot(ells[10:], (ells*(ells+1)*term3/(2*np.pi))[10:], label='term3', color='r')
+    plt.plot(ells[10:], (ells*(ells+1)*master_lhs/(2*np.pi))[10:], label='MASTER LHS', color='g')
+    plt.plot(ells[10:], (ells*(ells+1)*master_cl/(2*np.pi))[10:], label='Modified MASTER RHS', linestyle='dotted', color='m')
     plt.legend()
     plt.xlabel(r'$\ell$')
     plt.ylabel(r'$\frac{\ell(\ell+1)C_{\ell}^{TT}}{2\pi}$ [$\mathrm{K}^2$]')
@@ -72,7 +68,6 @@ def compare_master(inp, master_lhs, wlm_00, Cl, Ml, Wl, bispectrum_term3, bispec
     print('term1: ', term1[30:40])
     print('term2: ', term2[30:40])
     print('term3: ', term3[30:40])
-    print('term4: ', term4[30:40])
 
 
     #plot ratios

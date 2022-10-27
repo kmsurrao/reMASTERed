@@ -1,6 +1,6 @@
 nsims: 8
-ellmax: 300 #ellmax for power spectra
-nside: 128 #nside of maps for bispectrum calculation
+ellmax: 94 #ellmax for power spectra
+nside: 32 #nside of maps for bispectrum calculation
 dl: 1 #bin width for bispectrum binning
 comp: 'CMB' #choose 'ISW' or 'CMB'
 cut: 0.7 #mask regions whose values are above cut*(sigma of map)
