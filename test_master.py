@@ -8,7 +8,7 @@ import os
 
 def compare_master(inp, master_lhs, wlm_00, Cl, Ml, Wl, bispectrum, env):
 
-    base_dir = f'images/{inp.comp}_cut{inp.cut}_high{inp.cut_high}_low{inp.cut_low}_ellmax{inp.ellmax}_nsims{inp.nsims}'
+    base_dir = f'images/{inp.comp}_cut{inp.cut}_high{inp.cut_high}_low{inp.cut_low}_ellmax{inp.ellmax}_nsims{inp.nsims}_nside{inp.nside}_nsideformasking{inp.nside_for_masking}'
     if not os.path.isdir(base_dir):
         subprocess.call(f'mkdir {base_dir}', shell=True, env=env)
 
