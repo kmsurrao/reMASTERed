@@ -40,8 +40,6 @@ def one_sim(inp, sim):
     #get power spectra and bispectra
     print('***********************************************************', flush=True)
     print(f'Starting bispectrum calculation for sim {sim}', flush=True)
-    min_l = 0
-    Nl = int(inp.ellmax/inp.dl) # number of bins
     alm = hp.map2alm(map_, lmax=inp.ellmax)
     wlm = hp.map2alm(mask, lmax=inp.ellmax)
     Cl = hp.alm2cl(alm)
