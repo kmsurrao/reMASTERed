@@ -9,6 +9,8 @@ from generate_mask import *
 from bispectrum_unbinned import *
 from interpolate_bispectrum import *
 from test_master import *
+from test_master_anisotropic import *
+from helper import *
 import time
 print('imports complete in main.py', flush=True)
 start_time = time.time()
@@ -55,7 +57,11 @@ def one_sim(inp, sim):
     #get MASTER LHS
     master_lhs = hp.anafast(map_*mask, lmax=inp.ellmax)
 
-    return [master_lhs, wlm[0], Cl, Ml, Wl, bispectrum]
+    if inp.isotropic:
+        return [master_lhs, wlm[0], Cl, Ml, Wl, bispectrum]
+    
+    else:
+        return [master_lhs, Cl, bispectrum]
 
 
 #make plots of MASTER equation with new terms
@@ -63,16 +69,18 @@ pool = mp.Pool(min(inp.nsims, 16))
 results = pool.starmap(one_sim, [(inp, sim) for sim in range(inp.nsims)])
 pool.close()
 print('len(results): ', len(results), flush=True)
-master_lhs = np.mean(np.array([res[0] for res in results]), axis=0)
-wlm_00 = np.mean(np.array([res[1] for res in results]), axis=0)
-Cl = np.mean(np.array([res[2] for res in results]), axis=0)
-Ml = np.mean(np.array([res[3] for res in results]), axis=0)
-Wl = np.mean(np.array([res[4] for res in results]), axis=0)
-bispectrum = np.mean(np.array([res[5] for res in results]), axis=0)
+if inp.isotropic:
+    master_lhs = np.mean(np.array([res[0] for res in results]), axis=0)
+    wlm_00 = np.mean(np.array([res[1] for res in results]), axis=0)
+    Cl = np.mean(np.array([res[2] for res in results]), axis=0)
+    Ml = np.mean(np.array([res[3] for res in results]), axis=0)
+    Wl = np.mean(np.array([res[4] for res in results]), axis=0)
+    bispectrum = np.mean(np.array([res[5] for res in results]), axis=0)
 
 
 print('***********************************************************', flush=True)
 print('Starting MASTER comparison', flush=True)
-compare_master(inp, master_lhs, wlm_00, Cl, Ml, Wl, bispectrum, my_env)
+if inp.isotropic:
+    compare_master(inp, master_lhs, wlm_00, Cl, Ml, Wl, bispectrum, my_env)
 
 print("--- %s seconds ---" % (time.time() - start_time), flush=True)
