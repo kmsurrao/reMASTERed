@@ -16,5 +16,5 @@ module load gcc/7.2.0
 source activate /moto/hill/users/kms2320/MyEnv
 
 # Command to execute Python program
-/moto/hill/users/kms2320/MyEnv/bin/python consistency_checks.py moto.yaml
+/moto/hill/users/kms2320/MyEnv/bin/python generate_mask.py moto.yaml
 # end of script

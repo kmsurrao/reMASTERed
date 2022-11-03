@@ -112,7 +112,6 @@ def Bispectrum(alm1, Cl1, alm2, Cl2, alm3, Cl3, lmax, Nside, inp=None):
     b_ideal[b_ideal==np.inf]=0.
     b_ideal[b_ideal==-np.inf]=0.
     b_ideal = np.nan_to_num(b_ideal)
-    print('b_ideal.shape: ', b_ideal.shape, flush=True)
     return b_ideal.real
 
 if __name__=="__main__":

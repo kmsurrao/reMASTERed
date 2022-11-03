@@ -27,6 +27,8 @@ my_env = os.environ.copy()
 
 def one_sim(inp, sim):
 
+    np.random.seed(sim)
+
     #get simulated map
     map_ = hp.read_map(inp.map_file) 
     map_cl = hp.anafast(map_, lmax=inp.ellmax)

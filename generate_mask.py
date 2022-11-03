@@ -4,6 +4,8 @@ import matplotlib.pyplot as plt
 import pymaster as nmt
 import pickle
 import os.path
+import sys
+from input import Info
 
 def mask_above_cut(inp, cut_high, cut_low, map_, nside, nside_for_masking):
     #downgrade resolution of map for create mask initially
@@ -34,3 +36,22 @@ def gen_mask(inp, map_):
     cut_low = mean - inp.cut*std_dev
     mask = mask_above_cut(inp, cut_high, cut_low, map_, inp.nside, inp.nside_for_masking)
     return mask
+
+if __name__=="__main__":
+    # main input file containing most specifications 
+    try:
+        input_file = (sys.argv)[1]
+    except IndexError:
+        input_file = 'moto.yaml'
+
+    # read in the input file and set up relevant info object
+    inp = Info(input_file)
+
+    #get mask and plot
+    map_ = hp.read_map(inp.map_file)
+    map_ = hp.ud_grade(map_, inp.nside)
+    mask = gen_mask(inp, map_)
+    plt.clf()
+    hp.mollview(mask)
+    plt.savefig(f'mask_{inp.comp}_cut{inp.cut}_high{inp.cut_high}_low{inp.cut_low}_ellmax{inp.ellmax}_nsims{inp.nsims}_nside{inp.nside}_nsideformasking{inp.nside_for_masking}.png')
+    print(f'saved mask_{inp.comp}_cut{inp.cut}_high{inp.cut_high}_low{inp.cut_low}_ellmax{inp.ellmax}_nsims{inp.nsims}_nside{inp.nside}_nsideformasking{inp.nside_for_masking}.png', flush=True)
