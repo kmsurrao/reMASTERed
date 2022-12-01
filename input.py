@@ -36,7 +36,6 @@ class Info(object):
         self.aposcale = p['aposcale']
         self.cut_high = p['cut_high']
         self.cut_low = p['cut_low']
-        self.isotropic = p['isotropic']
         
         self.map_file = p['map_file']
         assert type(self.map_file) is str

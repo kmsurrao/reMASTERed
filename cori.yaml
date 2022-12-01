@@ -8,7 +8,6 @@ cut: 0.7 #mask regions whose values are above cut*(sigma of map)
 aposcale: 2.5 #apodization scale for NaMaster for mask, original was 2.5
 cut_high: 1 #set to 0 if only want to mask values above cut
 cut_low: 0 #set to 0 if only want to mask values below cut
-isotropic: 0 #set to 0 if you have an anisotropic mask, else nonzero value
 
 map_file: '/global/cscratch1/sd/kmsurrao/Correlated-Mask-Power-Spectrum/maps/isw.fits' #file for component map
 wigner_file: '/global/homes/k/kmsurrao/NILC-Parameter-Pipeline/wigner3j_ellmax1000.p' #file containing wigner-3j symbols with zero m values, indexed by l1,l2,l3

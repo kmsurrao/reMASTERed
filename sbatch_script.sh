@@ -4,8 +4,8 @@
 #SBATCH --account=hill # The account name for the job.
 #SBATCH --job-name=MyCondaEnv # The job name.
 #SBATCH -c 8 # The number of cpu cores to use.
-#SBATCH --time=0-3:30 # The time the job will take to run.
-#SBATCH --mem-per-cpu=20gb # The memory the job will use per cpu core.
+#SBATCH --time=0-10:10 # The time the job will take to run.
+#SBATCH --mem-per-cpu=10gb # The memory the job will use per cpu core.
 
 
 # Load anaconda & gcc
@@ -16,5 +16,5 @@ module load gcc/7.2.0
 source activate /moto/hill/users/kms2320/MyEnv
 
 # Command to execute Python program
-/moto/hill/users/kms2320/MyEnv/bin/python generate_mask.py moto.yaml
+/moto/hill/users/kms2320/MyEnv/bin/python main.py moto.yaml
 # end of script

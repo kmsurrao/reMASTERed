@@ -6,7 +6,7 @@ import healpy as hp
 import multiprocessing as mp
 from input import Info
 from generate_mask import *
-from bispectrum_unbinned import *
+from bispectrum import *
 from interpolate_bispectrum import *
 from test_master import *
 import time
@@ -27,6 +27,7 @@ my_env = os.environ.copy()
 
 def one_sim(inp, sim, offset):
     np.random.seed(sim)
+    lmax_data = 3*inp.nside-1
 
     #get simulated map
     map_ = hp.read_map(inp.map_file) 
@@ -43,23 +44,26 @@ def one_sim(inp, sim, offset):
     #get power spectra and bispectra
     print('***********************************************************', flush=True)
     print('Starting power spectra and bispectrum calculation', flush=True)
-    alm = hp.map2alm(map_, lmax=inp.ellmax)
-    wlm = hp.map2alm(mask, lmax=inp.ellmax)
+    alm = hp.map2alm(map_)
+    wlm = hp.map2alm(mask)
+
+    #added below
+    l_arr,m_arr = hp.Alm.getlm(lmax_data)
+    alm = alm*(l_arr<=inp.ellmax)
+    wlm = wlm*(l_arr<=inp.ellmax)
+    map_ = hp.alm2map(alm, nside=inp.nside)
+    mask = hp.alm2map(wlm, nside=inp.nside)
+
     masked_map = map_*mask
     masked_map_alm = hp.map2alm(masked_map, lmax=inp.ellmax)
-    Cl = hp.alm2cl(alm)
-    Ml = hp.alm2cl(wlm)
+    Cl = hp.alm2cl(alm, lmax_out=inp.ellmax)
+    Ml = hp.alm2cl(wlm, lmax_out=inp.ellmax)
     Wl = hp.anafast(map_, mask, lmax=inp.ellmax)
-    mask_no_monopole = hp.remove_monopole(mask)
-    print('mean of mask: ', np.mean(mask), flush=True)
-    print('mean of mask no monopole: ', np.mean(mask_no_monopole), flush=True)
-    wlm_no_monopole = hp.map2alm(mask_no_monopole, lmax=inp.ellmax)
-    Ml_no_monopole = hp.alm2cl(wlm_no_monopole)
-    lhs = hp.anafast(map_*mask, lmax=inp.ellmax)
-    # bispectrum = Bispectrum(alm, Cl, alm, Cl, wlm_no_monopole, Ml_no_monopole, inp.ellmax, inp.nside, inp)
-    # w00 = wlm[0]
 
-    return lhs, Cl, Ml, Wl#, bispectrum, w00
+    lhs = hp.anafast(masked_map, lmax=inp.ellmax)
+    lhs_wtildea = hp.anafast(masked_map, mask, lmax=inp.ellmax)
+
+    return lhs, Cl, Ml, Wl, wlm[0], lhs_wtildea
 
 
 #read map
@@ -67,7 +71,7 @@ map_ = hp.read_map(inp.map_file)
 map_ = hp.ud_grade(map_, inp.nside)
 
 #find offset A for mask W=a+A
-offset = abs(np.amin(map_))
+offset = 2*abs(np.amin(map_))
 print('offset: ', offset, flush=True)
 
 pool = mp.Pool(min(inp.nsims, 16))
@@ -77,6 +81,8 @@ lhs = np.mean(np.array([res[0] for res in results]), axis=0)
 Cl = np.mean(np.array([res[1] for res in results]), axis=0)
 Ml = np.mean(np.array([res[2] for res in results]), axis=0)
 Wl = np.mean(np.array([res[3] for res in results]), axis=0)
+w00 = np.mean(np.array([res[4] for res in results]), axis=0)
+lhs_wtildea = np.mean(np.array([res[5] for res in results]), axis=0)
 # bispectrum = np.mean(np.array([res[4] for res in results]), axis=0)
 # w00 = np.mean(np.array([res[5] for res in results]), axis=0)
 
@@ -93,8 +99,8 @@ ells = np.arange(inp.ellmax+1)
 wigner = pickle.load(open(inp.wigner_file, 'rb'))[:inp.ellmax+1, :inp.ellmax+1, :inp.ellmax+1]
 term1 = float(1/(4*np.pi))*np.einsum('a,b,lab,lab,a,b->l',2*l2+1,2*l3+1,wigner,wigner,Cl,Ml,optimize=True)
 term2 = float(1/(4*np.pi))*np.einsum('a,b,lab,lab,a,b->l',2*l2+1,2*l3+1,wigner,wigner,Wl,Wl,optimize=True)
-# term3 = 2.*float(1/(4*np.pi)**1.5)*wlm_00*np.einsum('a,b,lab,lab,lab->l',2*l2+1,2*l3+1,wigner,wigner,bispectrum,optimize=True)
-rhs = term1+term2#+term3
+term3 = 2.*float(1/(4*np.pi)**1.5)*wlm_00*np.einsum('a,b,lab,lab,lab->l',2*l2+1,2*l3+1,wigner,wigner,bispectrum,optimize=True)
+rhs = term1+term2+term3
 
 
 #make comparison plot of masked_map_cl and master_cl
@@ -123,6 +129,22 @@ print('Cl: ', Cl[30:40])
 print('term1: ', term1[30:40])
 print('term2: ', term2[30:40])
 # print('term3: ', term3[30:40])
+
+
+#check consistency <tilde(a) w> for this result
+rhs_wtildea = float(1/np.sqrt(4*np.pi))*np.real(w00)*Wl 
+plt.clf()
+plt.plot(ells[start:], lhs_wtildea[start:], label='directly computed', color='g')
+plt.plot(ells[start:], rhs_wtildea[start:], label='in terms of n-point expansions', linestyle='dotted', color='m')
+plt.legend()
+plt.yscale('log')
+plt.xlabel(r'$\ell$')
+plt.ylabel(r'$C_{\ell}^{\tilde{a}w}$')
+plt.grid()
+plt.savefig(f'consistency_wtileda_for_wapA.png')
+print(f'saved consistency_wtildea_for_wapA.png')
+plt.close('all')
+
 
 
 

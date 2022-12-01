@@ -11,3 +11,5 @@ bispectra/*
 *.fits
 bispectrum_plots/*
 maps/*
+*.ipynb
+oliver*
