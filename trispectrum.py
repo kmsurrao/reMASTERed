@@ -106,9 +106,9 @@ def Tl_numerator(inp,lmax, data1, data2, data3, data4,
     A34_lm = [[hp.map2alm(I3_map[l3-lmin]*I4_map[l4-lmin]) for l4 in range(lmin,lmax+1)] for l3 in range(lmin,lmax+1)]
     
     # Create output arrays (for 4-field, 2-field and 0-field terms)
-    t4_num_ideal = np.zeros((lmax+1,lmax+1,lmax+1,lmax+1,lmax+1))
-    t2_num_ideal = np.zeros_like(t4_num_ideal)
-    t0_num_ideal = np.zeros_like(t4_num_ideal)
+    t4_num_ideal = np.zeros((lmax+1,lmax+1,lmax+1,lmax+1,lmax+1), dtype=np.float32)
+    t2_num_ideal = np.zeros_like(t4_num_ideal, dtype=np.float32)
+    t0_num_ideal = np.zeros_like(t4_num_ideal, dtype=np.float32)
     
     ## Compute four-field term
     if verb: print("Computing four-field term")

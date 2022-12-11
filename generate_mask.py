@@ -33,6 +33,8 @@ def mask_above_cut(inp, cut_high, cut_low, map_, nside, nside_for_masking, sim, 
     #added section below to artificially create same ensemble average as half mask thersholding, remove
     else:
         m = (1.+m)/2
+    m[m>1.]=1.
+    m[m<0.]=0.
     return m
 
 def gen_mask(inp, map_, sim, testing_aniso=False):

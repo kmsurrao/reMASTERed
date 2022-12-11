@@ -5,8 +5,14 @@ import pickle
 import subprocess
 import os
 
+font = {'size'   : 20, 'family':'STIXGeneral'}
+plt.rcParams.update({
+     'text.usetex': True, 
+     'font.family': 'serif',
+     'font.sans-serif': ['Computer Modern']})
+plt.rc_context({'axes.autolimit_mode': 'round_numbers'})
 
-def compare_master(inp, master_lhs, wlm_00, alm_00, Cl, Ml, Wl, bispectrum_aaw, bispectrum_waw, trispectrum, env, base_dir=None, plot_log=False):
+def compare_master(inp, master_lhs, wlm_00, alm_00, Cl, Ml, Wl, bispectrum_aaw, bispectrum_waw, trispectrum, env, base_dir=None, plot_logy=False, plot_logx=False):
     start = 0
     if base_dir is None:
         base_dir = f'images/{inp.comp}_cut{inp.cut}_ellmax{inp.ellmax}_nsims{inp.nsims}_nside{inp.nside}_nsideformasking{inp.nside_for_masking}'
@@ -48,20 +54,24 @@ def compare_master(inp, master_lhs, wlm_00, alm_00, Cl, Ml, Wl, bispectrum_aaw, 
     ells = np.arange(ellmax+1)
     plt.clf()
     plt.plot(ells[start:], (ells*(ells+1)*aa_ww_term/(2*np.pi))[start:], label='<aa><ww> term', color='c')
-    plt.plot(ells[start:], (ells*(ells+1)*aw_aw_term/(2*np.pi))[start:], label='<aw><aw> term', linestyle='dotted')
+    plt.plot(ells[start:], (ells*(ells+1)*aw_aw_term/(2*np.pi))[start:], label='<aw><aw> term')
     plt.plot(ells[start:], (ells*(ells+1)*w_aaw_term/(2*np.pi))[start:], label='<w><aaw> term', color='r')
     plt.plot(ells[start:], (ells*(ells+1)*a_waw_term/(2*np.pi))[start:], label='<a><waw> term', color='mediumpurple')
-    plt.plot(ells[start:], (ells*(ells+1)*aaww_term/(2*np.pi))[start:], label='<aaww> term', color='y', linestyle='dotted')
-    plt.plot(ells[start:], (ells*(ells+1)*master_lhs/(2*np.pi))[start:], label='MASTER LHS', color='g')
-    plt.plot(ells[start:], (ells*(ells+1)*master_cl/(2*np.pi))[start:], label='Modified MASTER RHS', linestyle='dotted', color='m')
-    plt.plot(ells[start:], (ells*(ells+1)*without_trispectrum/(2*np.pi))[start:], label='Modified RHS w/o trispectrum', linestyle='dotted', color='k')
-    plt.legend()
-    plt.xlabel(r'$\ell$')
-    plt.ylabel(r'$\frac{\ell(\ell+1)C_{\ell}^{TT}}{2\pi}$ [$\mathrm{K}^2$]')
-    if plot_log:
+    plt.plot(ells[start:], (ells*(ells+1)*aaww_term/(2*np.pi))[start:], label='<aaww> term', color='y')
+    plt.plot(ells[start:], (ells*(ells+1)*master_lhs/(2*np.pi))[start:], label='Directly Computed', color='g')
+    plt.plot(ells[start:], (ells*(ells+1)*master_cl/(2*np.pi))[start:], label='ReMASTERed', linestyle='dotted', color='m')
+    # plt.plot(ells[start:], (ells*(ells+1)*without_trispectrum/(2*np.pi))[start:], label='Modified RHS w/o trispectrum', linestyle='dotted', color='k')
+    plt.legend(fontsize=12)
+    plt.xlabel(r'$\ell$', font=font)
+    plt.ylabel(r'$\frac{\ell(\ell+1)\langle \tilde{C}_{\ell} \rangle }{2\pi}$ [$\mathrm{K}^2$]', font=font)
+    if plot_logy:
         plt.yscale('log')
-    # plt.xscale('log')
+    if plot_logx:
+        plt.xscale('log')
     plt.grid()
+    plt.yticks(fontsize=20)
+    plt.xticks(fontsize=20)
+    plt.tight_layout()
     plt.savefig(f'{base_dir}/master.png')
     print(f'saved {base_dir}/master.png')
     plt.close('all')
@@ -75,15 +85,6 @@ def compare_master(inp, master_lhs, wlm_00, alm_00, Cl, Ml, Wl, bispectrum_aaw, 
     print('aaww_term: ', aaww_term[start:start+10])
 
 
-    #plot correlation of component map with mask
-    corr = Wl/np.sqrt(Cl*Ml)
-    corr = np.convolve(corr, np.ones(10)/10, mode='same')
-    plt.clf()
-    plt.plot(ells[0:], corr[0:])
-    plt.xlabel(r'$\ell$')
-    plt.ylabel(r'$r_{\ell}$')
-    plt.grid()
-    # plt.xscale('log')
-    plt.savefig(f'{base_dir}/component_mask_corr_coeff.png')
-    print(f'saved {base_dir}/component_mask_corr_coeff.png')
-    print('corr component map and mask: ', corr, flush=True)
+
+
+   
