@@ -10,7 +10,6 @@ from bispectrum import *
 from interpolate_bispectrum import *
 from test_master import *
 import time
-print('imports complete in consistency_checks.py', flush=True)
 start_time = time.time()
 
 # main input file containing most specifications 
@@ -33,7 +32,6 @@ def one_sim(inp, sim, offset):
     map_ = hp.read_map(inp.map_file) 
     map_cl = hp.anafast(map_, lmax=inp.ellmax)
     map_ = hp.synfast(map_cl, inp.nside)
-    print('map: ', map_, flush=True)
 
     #create W=a+A mask for component map
     print('***********************************************************', flush=True)
@@ -47,7 +45,7 @@ def one_sim(inp, sim, offset):
     alm = hp.map2alm(map_)
     wlm = hp.map2alm(mask)
 
-    #added below
+    #zero out modes above ellmax
     l_arr,m_arr = hp.Alm.getlm(lmax_data)
     alm = alm*(l_arr<=inp.ellmax)
     wlm = wlm*(l_arr<=inp.ellmax)
@@ -55,13 +53,13 @@ def one_sim(inp, sim, offset):
     mask = hp.alm2map(wlm, nside=inp.nside)
 
     masked_map = map_*mask
-    Cl = hp.alm2cl(alm, lmax_out=inp.ellmax)
-    Ml = hp.alm2cl(wlm, lmax_out=inp.ellmax)
-    Wl = hp.anafast(map_, mask, lmax=inp.ellmax)
+    Cl_aa = hp.alm2cl(alm, lmax_out=inp.ellmax)
+    Cl_ww = hp.alm2cl(wlm, lmax_out=inp.ellmax)
+    Cl_aw = hp.anafast(map_, mask, lmax=inp.ellmax)
 
     lhs = hp.anafast(masked_map, lmax=inp.ellmax)
 
-    return lhs, Cl, Ml, Wl
+    return lhs, Cl_aa, Cl_ww, Cl_aw
 
 
 #read map
@@ -69,23 +67,23 @@ map_ = hp.read_map(inp.map_file)
 map_ = hp.ud_grade(map_, inp.nside)
 
 #find offset A for mask W=a+A
-offset = 2*abs(np.amin(map_))
+offset = 1.5*abs(np.amin(map_))
 print('offset: ', offset, flush=True)
 
 pool = mp.Pool(min(inp.nsims, 16))
 results = pool.starmap(one_sim, [(inp, sim, offset) for sim in range(inp.nsims)])
 pool.close()
 lhs = np.mean(np.array([res[0] for res in results]), axis=0)
-Cl = np.mean(np.array([res[1] for res in results]), axis=0)
-Ml = np.mean(np.array([res[2] for res in results]), axis=0)
-Wl = np.mean(np.array([res[3] for res in results]), axis=0)
+Cl_aa = np.mean(np.array([res[1] for res in results]), axis=0)
+Cl_ww = np.mean(np.array([res[2] for res in results]), axis=0)
+Cl_aw = np.mean(np.array([res[3] for res in results]), axis=0)
 
 
 #make comparison plot of masked_map_cl and master_cl
 #test modified MASTER
 print('***********************************************************', flush=True)
 print('Testing modified MASTER', flush=True)
-compare_master(inp, lhs, 0, 0, Cl, Ml, Wl, 0, 0, 0, my_env, base_dir=f'images/{inp.comp}_w_eq_a_plus_A')
+compare_master(inp, lhs, 0, 0, Cl_aa, Cl_ww, Cl_aw, np.zeros((inp.ellmax+1, inp.ellmax+1, inp.ellmax+1)), np.zeros((inp.ellmax+1, inp.ellmax+1, inp.ellmax+1)), np.zeros((inp.ellmax+1, inp.ellmax+1, inp.ellmax+1, inp.ellmax+1, inp.ellmax+1)), my_env, base_dir=f'images/{inp.comp}_w_eq_a_plus_A_ellmax{inp.ellmax}')
 
 
 

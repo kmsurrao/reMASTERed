@@ -31,13 +31,17 @@ my_env = os.environ.copy()
 
 def get_flux_theta_phi():
     #read catalog file
-    f = h5py.File('/moto/hill/users/kms2320/repositories/halosky_maps/catalog_153.0.h5', 'r')
-    print(f.keys(), flush=True)
-    flux = f['flux'][()]
-    phi = f['phi'][()]
-    polarized_flux = f['polarized flux'][()]
-    theta = f['theta'][()]
+    f1 = h5py.File('/moto/hill/users/kms2320/repositories/halosky_maps/cen_chunk1_flux_353.h5', 'r')
+    f2 = h5py.File('/moto/hill/users/kms2320/repositories/halosky_maps/cen_chunk2_flux_353.h5', 'r')
+    flux = np.concatenate((f1['flux'][()],  f2['flux'][()]))
+    f3 = h5py.File('/moto/hill/users/kms2320/repositories/halosky_maps/cen_chunk1.h5', 'r')
+    f4 = h5py.File('/moto/hill/users/kms2320/repositories/halosky_maps/cen_chunk2.h5', 'r')
+    theta = np.concatenate((f3['theta'][()],  f4['theta'][()]))
+    phi = np.concatenate((f3['phi'][()],  f4['phi'][()]))
     print('read catalog', flush=True)
+    print("np.amax(flux): ", np.amax(flux), flush=True)
+    print('np.mean(flux): ', np.mean(flux), flush=True)
+    print('np.std(flux): ', np.std(flux), flush=True)
     return flux, theta, phi
 
 def mask_above_fluxcut(inp, fluxCut, flux, theta, phi):
@@ -48,11 +52,13 @@ def mask_above_fluxcut(inp, fluxCut, flux, theta, phi):
     #find theta and phi values of point sources where flux > fluxCut
     theta_new = theta[tmp]
     phi_new = phi[tmp]
+    print('len(theta_new): ', len(theta_new), flush=True)
     for i in range(len(theta_new)):
         vec = hp.ang2vec(theta_new[i], phi_new[i])
-        radius = 2.*(1./60.)*(np.pi/180.) #5.*(1./60.)*(np.pi/180.)
+        radius = 20.*(1./60.)*(np.pi/180.)
         ipix = hp.query_disc(inp.nside, vec, radius)
-        m[ipix] = 0
+        print("ipix: ", ipix, flush=True)
+        m[ipix] = 0.
     print('zeroed out point sources', flush=True)
     aposcale = inp.aposcale # Apodization scale in degrees, based on hole radius
     m = nmt.mask_apodization(m, aposcale, apotype="C1")
@@ -91,36 +97,20 @@ def one_sim(inp, sim, fluxCut, flux, theta, phi):
     mask = hp.alm2map(wlm, nside=inp.nside)
 
 
-    Cl = hp.alm2cl(alm, lmax_out=inp.ellmax)
-    Ml = hp.alm2cl(wlm, lmax_out=inp.ellmax)
-    Wl = hp.anafast(map_, mask, lmax=inp.ellmax)
+    Cl_aa = hp.alm2cl(alm, lmax_out=inp.ellmax)
+    Cl_ww = hp.alm2cl(wlm, lmax_out=inp.ellmax)
+    Cl_aw = hp.anafast(map_, mask, lmax=inp.ellmax)
 
 
     #make plot of map, mask, masked map, and correlation coefficient
-    if sim==0:
-        base_dir = f'images/tSZ_mask_radio_ellmax{inp.ellmax}_nsims{inp.nsims}_nside{inp.nside}'
-        if not os.path.isdir(base_dir):
-            subprocess.call(f'mkdir {base_dir}', shell=True, env=my_env)
-        fig, ((ax1, ax2), (ax3, ax4)) = plt.subplots(2,2)
-        plt.axes(ax1)
-        hp.mollview(map_, fig=1, hold=True, title=f'tSZ Map [K]', format='%.03g')
-        plt.axes(ax2)
-        hp.mollview(mask, fig=2, hold=True, title='Mask', format='%.03g', min=0.0, max=1.0)
-        plt.axes(ax3)
-        hp.mollview(mask*map_, fig=3, hold=True, title='Masked Map [K]', format='%.03g', min=np.amin(map_), max=np.amax(map_))
-        plt.axes(ax4)
-        corr = Wl/np.sqrt(Cl*Ml)
-        # corr = np.convolve(corr, np.ones(10)/10, mode='same')
-        ells = np.arange(inp.ellmax+1)
-        plt.plot(ells[2:], corr[2:])
-        plt.xlabel(r'$\ell$')
-        plt.ylabel(r'$r_{\ell}$')
-        plt.title('Map and Mask Correlation Coefficient')
-        plt.grid()
-        # plt.ylim(-1,0)
-        plt.savefig(f'{base_dir}/maps.png')
-        print(f'saved {base_dir}/maps.png', flush=True)
-        print('corr component map and mask: ', corr, flush=True)
+    data = [map_, mask, map_*mask] #contains map, mask, masked map, correlation coefficient
+    base_dir = f'images/tSZ_mask_IR_ellmax{inp.ellmax}_nside{inp.nside}'
+    if not os.path.isdir(base_dir):
+        subprocess.call(f'mkdir {base_dir}', shell=True, env=my_env)
+    corr = Cl_aw/np.sqrt(Cl_aa*Cl_ww)
+    data.append(corr)
+    pickle.dump(data, open(f'{base_dir}/mask_data.p', 'wb'))
+    print(f'saved {base_dir}/mask_data.p', flush=True)
 
     print('***********************************************************', flush=True)
     print(f'Starting bispectrum calculation for sim {sim}', flush=True)
@@ -128,40 +118,27 @@ def one_sim(inp, sim, fluxCut, flux, theta, phi):
     bispectrum_waw = Bispectrum(inp, mask-np.mean(mask), map_-np.mean(map_), mask-np.mean(mask), equal13=True)
 
     print(f'Starting trispectrum calculation for sim {sim}', flush=True)
-    #trispectrum = Trispectrum(inp, map_-np.mean(map_), mask-np.mean(mask), Wl, Cl, Ml)
-    trispectrum = rho(inp, map_-np.mean(map_), mask-np.mean(mask), Wl, Cl, Ml)
+    Rho = rho(inp, map_-np.mean(map_), mask-np.mean(mask), Cl_aw, Cl_aa, Cl_ww)
 
     #get MASTER LHS
     master_lhs = hp.anafast(map_*mask, lmax=inp.ellmax)
 
-    return master_lhs, wlm[0], alm[0], Cl, Ml, Wl, bispectrum_aaw, bispectrum_waw, trispectrum 
+    return master_lhs, wlm[0], alm[0], Cl_aa, Cl_ww, Cl,_aw bispectrum_aaw, bispectrum_waw, Rho 
 
 
 
 #make plots of MASTER equation with new terms
-fluxCut = 5*10**(-3) #7 mJy
+# fluxCut = 7*10**(-3) #7 mJy
+fluxCut = 3.*10**(-6) 
 flux, theta, phi = get_flux_theta_phi()
-pool = mp.Pool(min(inp.nsims, 16))
-results = pool.starmap(one_sim, [(inp, sim, fluxCut, flux, theta, phi) for sim in range(inp.nsims)])
-pool.close()
-print('len(results): ', len(results), flush=True)
-master_lhs = np.mean(np.array([res[0] for res in results]), axis=0)
-wlm_00 = np.mean(np.array([res[1] for res in results]), axis=0)
-alm_00 = np.mean(np.array([res[2] for res in results]), axis=0)
-Cl = np.mean(np.array([res[3] for res in results]), axis=0)
-Ml = np.mean(np.array([res[4] for res in results]), axis=0)
-Wl = np.mean(np.array([res[5] for res in results]), axis=0)
-bispectrum_aaw = np.mean(np.array([res[6] for res in results]), axis=0)
-bispectrum_waw = np.mean(np.array([res[7] for res in results]), axis=0)
-trispectrum = np.mean(np.array([res[8] for res in results]), axis=0)
-pickle.dump(trispectrum, open(f'trispectrum_tszmaskradio_rho_ellmax{inp.ellmax}.p', 'wb')) #remove
-# trispectrum = pickle.load(open(f'trispectrum_tszmaskradio_rho_ellmax{inp.ellmax}.p', 'rb')) 
+master_lhs, wlm_00, alm_00, Cl_aa, Cl_ww, Cl_aw, bispectrum_aaw, bispectrum_waw, Rho = one_sim(inp, 0, fluxCut, flux, theta, phi)
+pickle.dump(Rho, open(f'rho_tszmaskIR_ellmax{inp.ellmax}.p', 'wb')) #remove
+# Rho = pickle.load(open(f'rho_tszmaskIR_ellmax{inp.ellmax}.p', 'rb')) 
 
 print('***********************************************************', flush=True)
 print('Starting MASTER comparison', flush=True)
-plot_logx = False
-base_dir = f'images/tSZ_mask_radio_ellmax{inp.ellmax}_nsims{inp.nsims}_nside{inp.nside}'
-compare_master(inp, master_lhs, wlm_00, alm_00, Cl, Ml, Wl, bispectrum_aaw, bispectrum_waw, trispectrum, my_env, plot_logx=plot_logx, base_dir=base_dir)
+base_dir = f'images/tSZ_mask_IR_ellmax{inp.ellmax}_nside{inp.nside}'
+compare_master(inp, master_lhs, wlm_00, alm_00, Cl_aa, Cl_ww, Cl_aw, bispectrum_aaw, bispectrum_waw, Rho, my_env, base_dir=base_dir)
 
 print("--- %s seconds ---" % (time.time() - start_time), flush=True)
 

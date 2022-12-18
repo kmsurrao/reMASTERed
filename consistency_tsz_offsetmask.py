@@ -50,7 +50,7 @@ def one_sim(inp, sim, offset, base_dir):
     alm = hp.map2alm(map_)
     wlm = hp.map2alm(mask)
 
-    #added below
+    #zero out modes above ellmax
     l_arr,m_arr = hp.Alm.getlm(lmax_data)
     alm = alm*(l_arr<=inp.ellmax)
     wlm = wlm*(l_arr<=inp.ellmax)
@@ -59,9 +59,9 @@ def one_sim(inp, sim, offset, base_dir):
 
     masked_map = map_*mask
     masked_map_alm = hp.map2alm(masked_map, lmax=inp.ellmax)
-    Cl = hp.alm2cl(alm, lmax_out=inp.ellmax)
-    Ml = hp.alm2cl(wlm, lmax_out=inp.ellmax)
-    Wl = hp.anafast(map_, mask, lmax=inp.ellmax)
+    Cl_aa = hp.alm2cl(alm, lmax_out=inp.ellmax)
+    Cl_ww = hp.alm2cl(wlm, lmax_out=inp.ellmax)
+    Cl_aw = hp.anafast(map_, mask, lmax=inp.ellmax)
 
     lhs = hp.anafast(masked_map, lmax=inp.ellmax)
     bispectrum_aaw = Bispectrum(inp, map_-np.mean(map_), map_-np.mean(map_), mask-np.mean(mask), equal12=True)
@@ -69,12 +69,12 @@ def one_sim(inp, sim, offset, base_dir):
     bispectrum_waw = Bispectrum(inp, mask-np.mean(mask), map_-np.mean(map_), mask-np.mean(mask), equal13=True)
     a00 = alm[0]
 
-    # print('***********************************************************', flush=True)
-    # print(f'Starting trispectrum calculation for sim {sim}', flush=True)
-    # trispectrum = rho(inp, map_-np.mean(map_), mask-np.mean(mask), Wl, Cl, Ml)
+    print('***********************************************************', flush=True)
+    print(f'Starting rho calculation for sim {sim}', flush=True)
+    Rho = rho(inp, map_-np.mean(map_), mask-np.mean(mask), Cl_aw, Cl_aa, Cl_ww)
 
 
-    return lhs, Cl, Ml, Wl, bispectrum_aaw, w00, bispectrum_waw, a00#, trispectrum
+    return lhs, Cl_aa, Cl_ww, Cl_aw, bispectrum_aaw, w00, bispectrum_waw, a00, Rho
 
 
 #read map
@@ -88,22 +88,22 @@ pool = mp.Pool(min(inp.nsims, 16))
 results = pool.starmap(one_sim, [(inp, sim, offset, base_dir) for sim in range(inp.nsims)])
 pool.close()
 master_lhs = np.mean(np.array([res[0] for res in results]), axis=0)
-Cl = np.mean(np.array([res[1] for res in results]), axis=0)
-Ml = np.mean(np.array([res[2] for res in results]), axis=0)
-Wl = np.mean(np.array([res[3] for res in results]), axis=0)
+Cl_aa = np.mean(np.array([res[1] for res in results]), axis=0)
+Cl_ww = np.mean(np.array([res[2] for res in results]), axis=0)
+Cl_aw = np.mean(np.array([res[3] for res in results]), axis=0)
 bispectrum_aaw = np.mean(np.array([res[4] for res in results]), axis=0)
 w00 = np.mean(np.array([res[5] for res in results]), axis=0)
 bispectrum_waw = np.mean(np.array([res[6] for res in results]), axis=0)
 a00 = np.mean(np.array([res[7] for res in results]), axis=0)
-# trispectrum = np.mean(np.array([res[8] for res in results]), axis=0)
-# pickle.dump(trispectrum, open(f'trispectrum_tsz_rho_ellmax{inp.ellmax}.p', 'wb'))
-trispectrum = pickle.load(open(f'trispectrum_tsz_rho_ellmax{inp.ellmax}.p', 'rb'))
+Rho = np.mean(np.array([res[8] for res in results]), axis=0)
+pickle.dump(Rho, open(f'rho_tsz_ellmax{inp.ellmax}.p', 'wb'))
+# Rho = pickle.load(open(f'rho_tsz_ellmax{inp.ellmax}.p', 'rb'))
 
 
 #test modified MASTER
 print('***********************************************************', flush=True)
 print('Testing modified MASTER', flush=True)
-compare_master(inp, master_lhs, w00, a00, Cl, Ml, Wl, bispectrum_aaw, bispectrum_waw, trispectrum, my_env, base_dir=f'images/tSZ_w_eq_a_plus_A', plot_logy=True)
+compare_master(inp, master_lhs, w00, a00, Cl_aa, Cl_ww, Cl_aw, bispectrum_aaw, bispectrum_waw, Rho, my_env, base_dir=f'images/tSZ_w_eq_a_plus_A_ellmax{inp.ellmax}')
 
 
 print("--- %s seconds ---" % (time.time() - start_time), flush=True)

@@ -1,3 +1,5 @@
+#This script assumes zero-mean fields.
+
 import sys
 import os
 import subprocess
@@ -9,7 +11,7 @@ from generate_mask import *
 from bispectrum import *
 from test_master import *
 import time
-print('imports complete in consistency_checks.py', flush=True)
+import pickle
 start_time = time.time()
 
 # main input file containing most specifications 
@@ -25,7 +27,7 @@ inp = Info(input_file)
 my_env = os.environ.copy()
 
 
-def one_sim(inp, sim, atildea=True, wtildea=True):
+def one_sim(inp, sim):
 
     lmax_data = 3*inp.nside-1
 
@@ -56,137 +58,48 @@ def one_sim(inp, sim, atildea=True, wtildea=True):
 
     masked_map = map_*mask
     masked_map_alm = hp.map2alm(masked_map, lmax=inp.ellmax)
-    Cl = hp.alm2cl(alm, lmax_out=inp.ellmax)
-    Ml = hp.alm2cl(wlm, lmax_out=inp.ellmax)
-    Wl = hp.anafast(map_, mask, lmax=inp.ellmax)
+    Cl_aa = hp.alm2cl(alm, lmax_out=inp.ellmax)
+    Cl_ww = hp.alm2cl(wlm, lmax_out=inp.ellmax)
+    Cl_aw = hp.anafast(map_, mask, lmax=inp.ellmax)
 
     #load 3j symbols and set up arrays
     l2 = np.arange(inp.ellmax+1)
     l3 = np.arange(inp.ellmax+1)
     wigner = pickle.load(open(inp.wigner_file, 'rb'))[:inp.ellmax+1, :inp.ellmax+1, :inp.ellmax+1]
     
-    if atildea:
-        #compare <a tilde(a)> to representation in terms of bispectrum
-        bispectrum_aaw = Bispectrum(inp, map_-np.mean(map_), map_-np.mean(map_), mask-np.mean(mask), equal12=True)
-        print(f'finished bispectrum calculation aaw sim {sim}', flush=True)
-        lhs_atildea = hp.anafast(map_*mask, map_, lmax=inp.ellmax)
-        bispectrum_term_atildea = float(1/(4*np.pi))*np.einsum('a,b,lab,lab,lab->l',2*l2+1,2*l3+1,wigner,wigner,bispectrum_aaw,optimize=True)
-        cl_term_atildea = np.real(wlm[0])/np.sqrt(4*np.pi)*Cl
+    #compare <a tilde(a)> to representation in terms of bispectrum
+    bispectrum_aaw = Bispectrum(inp, map_-np.mean(map_), map_-np.mean(map_), mask-np.mean(mask), equal12=True)
+    print(f'finished bispectrum calculation aaw sim {sim}', flush=True)
+    lhs_atildea = hp.anafast(map_*mask, map_, lmax=inp.ellmax)
+    aaw_term_atildea = float(1/(4*np.pi))*np.einsum('a,b,lab,lab,lab->l',2*l2+1,2*l3+1,wigner,wigner,bispectrum_aaw,optimize=True)
+    w_aa_term_atildea = np.real(wlm[0])/np.sqrt(4*np.pi)*Cl_aa
 
-    if wtildea:
-        #compare <w tilde(a)> to representation in terms of Claw and w00
-        bispectrum_waw = Bispectrum(inp,mask-np.mean(mask),map_-np.mean(map_),mask-np.mean(mask),equal13=True)
-        print(f'finished bispectrum calculation waw sim {sim}', flush=True)
-        wigner = pickle.load(open(inp.wigner_file, 'rb'))[:inp.ellmax+1, :inp.ellmax+1, :inp.ellmax+1]
-        lhs_wtildea = hp.anafast(map_*mask, mask, lmax=inp.ellmax)
-        wl_term_wtildea = float(1/np.sqrt(4*np.pi))*np.real(wlm[0])*Wl #added no monopole here to test
-        bispectrum_term_wtildea = 1/(4*np.pi)*np.einsum('a,b,lab,lab,lab->l',2*l2+1,2*l3+1,wigner,wigner,bispectrum_waw)
-        ml_term_wtildea = float(1/np.sqrt(4*np.pi))*np.real(alm[0])*Ml
+    #compare <w tilde(a)> to representation in terms of Claw and w00
+    bispectrum_waw = Bispectrum(inp,mask-np.mean(mask),map_-np.mean(map_),mask-np.mean(mask),equal13=True)
+    print(f'finished bispectrum calculation waw sim {sim}', flush=True)
+    wigner = pickle.load(open(inp.wigner_file, 'rb'))[:inp.ellmax+1, :inp.ellmax+1, :inp.ellmax+1]
+    lhs_wtildea = hp.anafast(map_*mask, mask, lmax=inp.ellmax)
+    w_aw_term_wtildea = float(1/np.sqrt(4*np.pi))*np.real(wlm[0])*Cl_aw #added no monopole here to test
+    waw_term_wtildea = 1/(4*np.pi)*np.einsum('a,b,lab,lab,lab->l',2*l2+1,2*l3+1,wigner,wigner,bispectrum_waw)
     
-    if atildea and wtildea:
-        return lhs_atildea,cl_term_atildea, bispectrum_term_atildea, lhs_wtildea, wl_term_wtildea, bispectrum_term_wtildea, ml_term_wtildea
-    elif atildea:
-        return lhs_atildea, cl_term_atildea, bispectrum_term_atildea, rhs_atildea
-    elif wtildea:
-        return lhs_wtildea, wl_term_wtildea, bispectrum_term_wtildea, ml_term_wtildea
+    return lhs_atildea, w_aa_term_atildea, aaw_term_atildea, lhs_wtildea, w_aw_term_wtildea, waw_term_wtildea
 
 #do ensemble averaging
-atildea = True
-wtildea = True
 pool = mp.Pool(min(inp.nsims, 16))
-results = pool.starmap(one_sim, [(inp, sim, atildea, wtildea) for sim in range(inp.nsims)])
+results = pool.starmap(one_sim, [(inp, sim) for sim in range(inp.nsims)])
 pool.close()
-if atildea:
-    lhs_atildea = np.mean(np.array([res[0] for res in results]), axis=0)
-    cl_term_atildea = np.mean(np.array([res[1] for res in results]), axis=0)
-    bispectrum_term_atildea = np.mean(np.array([res[2] for res in results]), axis=0)
-    if wtildea:
-        lhs_wtildea = np.mean(np.array([res[3] for res in results]), axis=0)
-        wl_term_wtildea = np.mean(np.array([res[4] for res in results]), axis=0)
-        bispectrum_term_wtildea = np.mean(np.array([res[5] for res in results]), axis=0)
-        ml_term_wtildea = np.mean(np.array([res[6] for res in results]), axis=0)
-elif wtildea:
-    lhs_wtildea = np.mean(np.array([res[0] for res in results]), axis=0)
-    wl_term_wtildea = np.mean(np.array([res[1] for res in results]), axis=0)
-    bispectrum_term_wtildea = np.mean(np.array([res[2] for res in results]), axis=0)
-    ml_term_wtildea = np.mean(np.array([res[3] for res in results]), axis=0)
-start = 2
-ells = np.arange(inp.ellmax+1)
-
-if atildea and wtildea:
-    plt.clf()
-    fig, (ax1, ax2) = plt.subplots(1, 2, layout="constrained")
-    plt.axes(ax1)
-    rhs_atildea = cl_term_atildea + bispectrum_term_atildea
-    plt.plot(ells[start:], cl_term_atildea[start:], label='<w><aa> term', color='c')
-    plt.plot(ells[start:], bispectrum_term_atildea[start:], label='<aaw> term', color='r')
-    plt.plot(ells[start:], lhs_atildea[start:], label='Directly Computed', color='g')
-    plt.plot(ells[start:], rhs_atildea[start:], label='reMASTERed', linestyle='dotted', color='m')
-    plt.legend()
-    plt.xscale('log')
-    plt.xlabel(r'$\ell$')
-    plt.ylabel(r'$C_{\ell}^{\tilde{a}a}$')
-    print('lhs_atildea[start:]: ', lhs_atildea[start:], flush=True)
-    print('rhs_atildea[start:]: ', rhs_atildea[start:], flush=True)
-    print()
-    plt.axes(ax2)
-    rhs_wtildea = wl_term_wtildea + bispectrum_term_wtildea
-    plt.plot(ells[start:], wl_term_wtildea[start:], label='<w><aw> term')
-    plt.plot(ells[start:], bispectrum_term_wtildea[start:], label='<waw> term', color='r')
-    plt.plot(ells[start:], lhs_wtildea[start:], label='Directly Computed', color='g')
-    plt.plot(ells[start:], rhs_wtildea[start:], label='ReMASTERed', color='m', linestyle='dotted')
-    plt.legend()
-    plt.xscale('log')
-    plt.xlabel(r'$\ell$')
-    plt.ylabel(r'$C_{\ell}^{\tilde{a}w}$')
-    print('lhs_wtildea[start:]: ', lhs_wtildea[start:], flush=True)
-    print('rhs_wtildea[start:]: ', rhs_wtildea[start:], flush=True)
-    print('wl_term_wtildea[start:]: ', wl_term_wtildea[start:], flush=True)
-    print('bispectrum_term_wtildea[start:]: ', bispectrum_term_wtildea[start:], flush=True)
-    print('ml_term_wtildea[start:]: ', ml_term_wtildea[start:], flush=True)
-    print()
-    plt.savefig(f'images/consistency/consistency_{inp.comp}_{inp.ellmax}.png')
-
-elif atildea:
-    #plot <a tilde(a)>
-    plt.clf()
-    rhs_atildea = cl_term_atildea + bispectrum_term_atildea
-    plt.plot(ells[start:], cl_term_atildea[start:], label='<w><aa> term', color='c')
-    plt.plot(ells[start:], bispectrum_term_atildea[start:], label='<aaw> term', color='r')
-    plt.plot(ells[start:], lhs_atildea[start:], label='Directly Computed', color='g')
-    plt.plot(ells[start:], rhs_atildea[start:], label='reMASTERed', linestyle='dotted', color='m')
-    plt.legend()
-    plt.xscale('log')
-    # plt.yscale('log')
-    plt.xlabel(r'$\ell$')
-    plt.ylabel(r'$C_{\ell}^{\tilde{a}a}$')
-    plt.savefig(f'images/consistency/consistency_atildea_{inp.comp}.png')
-    print(f'saved images/consistency/consistency_atildea_{inp.comp}.png', flush=True)
-    print('lhs_atildea[start:]: ', lhs_atildea[start:], flush=True)
-    print('rhs_atildea[start:]: ', rhs_atildea[start:], flush=True)
-    print()
-
-elif wtildea:
-    #plot <w tilde(a)>
-    rhs_wtildea = wl_term_wtildea + bispectrum_term_wtildea
-    plt.clf()
-    plt.plot(ells[start:], wl_term_wtildea[start:], label='<w><aw> term')
-    plt.plot(ells[start:], bispectrum_term_wtildea[start:], label='<waw> term', color='r')
-    plt.plot(ells[start:], lhs_wtildea[start:], label='Directly Computed', color='g')
-    plt.plot(ells[start:], rhs_wtildea[start:], label='ReMASTERed', color='m', linestyle='dotted')
-    plt.legend()
-    plt.xscale('log')
-    # plt.yscale('log')
-    plt.xlabel(r'$\ell$')
-    plt.ylabel(r'$C_{\ell}^{\tilde{a}w}$')
-    plt.savefig(f'images/consistency/consistency_wtildea_{inp.comp}.png')
-    print(f'saved images/consistency/consistency_wtildea_{inp.comp}.png', flush=True)
-    print('lhs_wtildea[start:]: ', lhs_wtildea[start:], flush=True)
-    print('rhs_wtildea[start:]: ', rhs_wtildea[start:], flush=True)
-    print('wl_term_wtildea[start:]: ', wl_term_wtildea[start:], flush=True)
-    print('bispectrum_term_wtildea[start:]: ', bispectrum_term_wtildea[start:], flush=True)
-    print('ml_term_wtildea[start:]: ', ml_term_wtildea[start:], flush=True)
-    print()
+lhs_atildea = np.mean(np.array([res[0] for res in results]), axis=0)
+w_aa_term_atildea = np.mean(np.array([res[1] for res in results]), axis=0)
+aaw_term_atildea = np.mean(np.array([res[2] for res in results]), axis=0)
+lhs_wtildea = np.mean(np.array([res[3] for res in results]), axis=0)
+w_aw_term_wtildea = np.mean(np.array([res[4] for res in results]), axis=0)
+waw_term_wtildea = np.mean(np.array([res[5] for res in results]), axis=0)
+to_save = [lhs_atildea, w_aa_term_atildea, aaw_term_atildea, lhs_wtildea, w_aw_term_wtildea, waw_term_wtildea]
+base_dir = f'images/consistency_{inp.comp}_cut{inp.cut}_ellmax{inp.ellmax}_nsims{inp.nsims}_nside{inp.nside}_nsideformasking{inp.nside_for_masking}'
+if not os.path.isdir(base_dir):
+    subprocess.call(f'mkdir {base_dir}', shell=True, env=my_env)
+pickle.dump(to_save, open(f'{base_dir}/consistency.p', 'wb'))
+print(f'saved {base_dir}/consistency.p', flush=True)
 
 
 

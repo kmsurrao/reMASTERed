@@ -28,8 +28,6 @@ class Info(object):
         assert self.ellmax <= 3*self.nside-1, "ellmax > 3*nside-1"
         self.nside_for_masking = p['nside_for_masking']
         assert type(self.nside_for_masking) is int and (self.nside_for_masking & (self.nside_for_masking-1) == 0) and self.nside_for_masking != 0, "nside_for_masking"
-        self.dl = p['dl']
-        assert type(self.dl) is int and self.dl>=0, "dl"
         self.comp = p['comp']
         assert type(self.comp) is str and self.comp in ['ISW', 'CMB'], "comp"
         self.cut = p['cut']

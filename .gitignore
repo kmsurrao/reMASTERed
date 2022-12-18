@@ -13,3 +13,4 @@ bispectrum_plots/*
 maps/*
 *.ipynb
 oliver*
+sbatch_script.sh

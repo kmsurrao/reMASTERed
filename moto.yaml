@@ -1,10 +1,9 @@
 nsims: 8
 ellmax: 30 #ellmax for power spectra
-nside: 32 #nside of maps for bispectrum calculation
+nside: 64 #nside of maps, used in bi[tri]spectrum calculation
 nside_for_masking: 32 #nside for finding regions of map to threshold
-dl: 1 #bin width for bispectrum binning
 comp: 'ISW' #choose 'ISW' or 'CMB'
-cut: 0.7 #mask regions whose values are above cut*(sigma of map)
+cut: 1.5 #mask regions whose values are above cut*(sigma of map)
 aposcale: 2.5 #apodization scale for NaMaster for mask, original was 2.5
 cut_high: 1 #set to 0 if only want to mask values above cut
 cut_low: 0 #set to 0 if only want to mask values below cut

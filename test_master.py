@@ -5,14 +5,8 @@ import pickle
 import subprocess
 import os
 
-font = {'size'   : 20, 'family':'STIXGeneral'}
-plt.rcParams.update({
-     'text.usetex': True, 
-     'font.family': 'serif',
-     'font.sans-serif': ['Computer Modern']})
-plt.rc_context({'axes.autolimit_mode': 'round_numbers'})
 
-def compare_master(inp, master_lhs, wlm_00, alm_00, Cl, Ml, Wl, bispectrum_aaw, bispectrum_waw, trispectrum, env, base_dir=None, plot_logy=False, plot_logx=False):
+def compare_master(inp, master_lhs, wlm_00, alm_00, Cl_aa, Cl_ww, Cl_aw, bispectrum_aaw, bispectrum_waw, Rho, env, base_dir=None):
     start = 0
     if base_dir is None:
         base_dir = f'images/{inp.comp}_cut{inp.cut}_ellmax{inp.ellmax}_nsims{inp.nsims}_nside{inp.nside}_nsideformasking{inp.nside_for_masking}'
@@ -21,9 +15,8 @@ def compare_master(inp, master_lhs, wlm_00, alm_00, Cl, Ml, Wl, bispectrum_aaw, 
 
     ellmax = inp.ellmax
 
-    #load wigner3j and wigner6j symbols
+    #load wigner3j symbols
     wigner3j = pickle.load(open(inp.wigner_file, 'rb'))[:ellmax+1, :ellmax+1, :ellmax+1]
-    # wigner6j = pickle.load(open('wigner6j_ellmax20.p', 'rb'))[:ellmax+1, :ellmax+1, :ellmax+1, :ellmax+1, :ellmax+1, :ellmax+1]
 
 
     #calculate spectra of masked map from MASTER approach
@@ -35,54 +28,24 @@ def compare_master(inp, master_lhs, wlm_00, alm_00, Cl, Ml, Wl, bispectrum_aaw, 
     L = np.arange(ellmax+1)
     neg_ones_array = np.ones(ellmax+1)
     neg_ones_array[1::2] = -1
-    aa_ww_term = float(1/(4*np.pi))*np.einsum('a,b,lab,lab,a,b->l',2*l2+1,2*l3+1,wigner3j,wigner3j,Cl,Ml,optimize=True)
-    aw_aw_term = float(1/(4*np.pi))*np.einsum('a,b,lab,lab,a,b->l',2*l2+1,2*l3+1,wigner3j,wigner3j,Wl,Wl,optimize=True)
+    aa_ww_term = float(1/(4*np.pi))*np.einsum('a,b,lab,lab,a,b->l',2*l2+1,2*l3+1,wigner3j,wigner3j,Cl_aa,Cl_ww,optimize=True)
+    aw_aw_term = float(1/(4*np.pi))*np.einsum('a,b,lab,lab,a,b->l',2*l2+1,2*l3+1,wigner3j,wigner3j,Cl_aw,Cl_aw,optimize=True)
     w_aaw_term = 2.*float(1/(4*np.pi)**1.5)*wlm_00*np.einsum('a,b,lab,lab,lab->l',2*l2+1,2*l3+1,wigner3j,wigner3j,bispectrum_aaw,optimize=True)
     a_waw_term = 2.*float(1/(4*np.pi)**1.5)*alm_00*np.einsum('a,b,lab,lab,lab->l',2*l2+1,2*l3+1,wigner3j,wigner3j,bispectrum_waw,optimize=True)
-    # aaww_term_parta = 16.*float(1/(4*np.pi)**2)*np.einsum('l,L,a,b,c,d,L,calbdL,alc,cdL,dlb,baL,abcdL->l', neg_ones_array,neg_ones_array,2*l2+1,2*l3+1,2*l4+1,2*l5+1,2*L+1,wigner6j,wigner3j,wigner3j,wigner3j,wigner3j,trispectrum,optimize=True)
-    # aaww_term_partc = 8.*float(1/(4*np.pi)**2)*np.einsum('a,b,c,d,lac,lac,lbd,lbd,abcdl->l', 2*l2+1,2*l3+1,2*l4+1,2*l5+1,wigner3j,wigner3j,wigner3j,wigner3j,trispectrum, optimize=True)
-    # print('aaww_term_parta: ', aaww_term_parta, flush=True)
-    # print('aaww_term_partc: ', aaww_term_partc, flush=True)
-    # aaww_term = aaww_term_parta + aaww_term_partc
-    aaww_term = np.einsum('l,acbdl->l', 1/(2*l1+1), trispectrum) #use when using rho for trispectrum
-    master_cl = (aa_ww_term + aw_aw_term + w_aaw_term + a_waw_term + aaww_term)
-    without_trispectrum = aa_ww_term + aw_aw_term + w_aaw_term + a_waw_term
-
-
-    #make comparison plot of masked_map_cl and master_cl
-    start = 0
-    ells = np.arange(ellmax+1)
-    plt.clf()
-    plt.plot(ells[start:], (ells*(ells+1)*aa_ww_term/(2*np.pi))[start:], label='<aa><ww> term', color='c')
-    plt.plot(ells[start:], (ells*(ells+1)*aw_aw_term/(2*np.pi))[start:], label='<aw><aw> term')
-    plt.plot(ells[start:], (ells*(ells+1)*w_aaw_term/(2*np.pi))[start:], label='<w><aaw> term', color='r')
-    plt.plot(ells[start:], (ells*(ells+1)*a_waw_term/(2*np.pi))[start:], label='<a><waw> term', color='mediumpurple')
-    plt.plot(ells[start:], (ells*(ells+1)*aaww_term/(2*np.pi))[start:], label='<aaww> term', color='y')
-    plt.plot(ells[start:], (ells*(ells+1)*master_lhs/(2*np.pi))[start:], label='Directly Computed', color='g')
-    plt.plot(ells[start:], (ells*(ells+1)*master_cl/(2*np.pi))[start:], label='ReMASTERed', linestyle='dotted', color='m')
-    # plt.plot(ells[start:], (ells*(ells+1)*without_trispectrum/(2*np.pi))[start:], label='Modified RHS w/o trispectrum', linestyle='dotted', color='k')
-    plt.legend(fontsize=12)
-    plt.xlabel(r'$\ell$', font=font)
-    plt.ylabel(r'$\frac{\ell(\ell+1)\langle \tilde{C}_{\ell} \rangle }{2\pi}$ [$\mathrm{K}^2$]', font=font)
-    if plot_logy:
-        plt.yscale('log')
-    if plot_logx:
-        plt.xscale('log')
-    plt.grid()
-    plt.yticks(fontsize=20)
-    plt.xticks(fontsize=20)
-    plt.tight_layout()
-    plt.savefig(f'{base_dir}/master.png')
-    print(f'saved {base_dir}/master.png')
-    plt.close('all')
-    print((master_lhs/master_cl)[start:start+10])
-    print('master lhs: ', master_lhs[start:start+10])
-    print('master_cl: ', master_cl[start:start+10])
-    print('Cl: ', Cl[start:start+10])
+    aaww_term = np.einsum('l,acbdl->l', 1/(2*l1+1), Rho) #use when using rho for trispectrum
+    remastered = (aa_ww_term + aw_aw_term + w_aaw_term + a_waw_term + aaww_term)
+    remastered_curves = [aa_ww_term, aw_aw_term, w_aaw_term, a_waw_term, aaww_term, master_lhs, remastered]
+    pickle.dump(remastered_curves, open(f'{base_dir}/remastered_curves.p', 'wb'))
+    print(f'saved {base_dir}/remastered_curves.p', flush=True)
+   
+    print('Directly Calculated: ', master_lhs[start:start+10])
+    print('reMASTERed: ', remastered[start:start+10])
     print('aa_ww_term: ', aa_ww_term[start:start+10])
     print('aw_aw_term: ', aw_aw_term[start:start+10])
     print('w_aaw_term: ', w_aaw_term[start:start+10])
     print('aaww_term: ', aaww_term[start:start+10])
+
+    return remastered_curves
 
 
 
