@@ -1,13 +1,10 @@
-nsims: 4
-ellmax: 500 #ellmax for power spectra
-nside: 256 #nside of maps for bispectrum calculation
-nside_for_masking: 64 #nside for finding regions of map to threshold
-dl: 5 #bin width for bispectrum binning
-comp: 'ISW' #choose 'ISW' or 'CMB'
-cut: 0.7 #mask regions whose values are above cut*(sigma of map)
-aposcale: 2.5 #apodization scale for NaMaster for mask, original was 2.5
-cut_high: 1 #set to 0 if only want to mask values above cut
-cut_low: 0 #set to 0 if only want to mask values below cut
+ellmax: 30 #ellmax for power spectra
+nside: 64 #nside of maps, used in bi[tri]spectrum calculation
 
-map_file: '/global/cscratch1/sd/kmsurrao/Correlated-Mask-Power-Spectrum/maps/isw.fits' #file for component map
-wigner_file: '/global/homes/k/kmsurrao/NILC-Parameter-Pipeline/wigner3j_ellmax1000.p' #file containing wigner-3j symbols with zero m values, indexed by l1,l2,l3
+map_file: '/global/cscratch1/sd/kmsurrao/Correlated-Mask-Power-Spectrum/maps/isw.fits' #File for component map
+mask_file: ''
+wigner_file: '/global/homes/k/kmsurrao/NILC-Parameter-Pipeline/wigner3j_ellmax1000.p' #File containing wigner-3j symbols with zero m values, indexed as wigner3j[l1,l2,l3]. Leave empty if no such file.
+
+output_dir: 'images/isw_map_eq_mask' #Directory to save output files and plots
+save_files: 1 #Set to nonzero value to save pickle files for map, mask, masked map, and reMASTERed terms
+plot: 0 #Set to nonzero value to plot map, mask, masked map, and reMASTERed terms

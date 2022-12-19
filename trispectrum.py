@@ -1,4 +1,4 @@
-#adapted from PolyBin
+#Code adapted from PolyBin O. H. E. Philcox (2022), in prep.
 
 import pywigxjpf as wig
 import healpy as hp

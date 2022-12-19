@@ -10,7 +10,7 @@ from plot_remastered import *
 def compare_master(inp, master_lhs, wlm_00, alm_00, Cl_aa, Cl_ww, Cl_aw, bispectrum_aaw, bispectrum_waw, Rho, env, base_dir=None):
     start = 0
     if base_dir is None:
-        base_dir = f'images/{inp.comp}_cut{inp.cut}_ellmax{inp.ellmax}_nsims{inp.nsims}_nside{inp.nside}_nsideformasking{inp.nside_for_masking}'
+        base_dir = inp.output_dir
     if not os.path.isdir(base_dir):
         subprocess.call(f'mkdir {base_dir}', shell=True, env=env)
 
