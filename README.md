@@ -1,1 +1,1 @@
-# Correlated-Mask-Power-Spectrum
+# reMASTERed
