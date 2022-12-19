@@ -1,3 +1,5 @@
+rho/*
+extra/*
 .ipynb_checkpoints/
 __pycache__/
 slurm-*.out

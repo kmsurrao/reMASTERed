@@ -8,10 +8,11 @@ from input import Info
 from generate_mask import *
 from bispectrum import *
 from trispectrum import *
-from test_master import *
+from test_remastered import *
 from helper import *
 import time
 import string 
+from plot_mask import *
 print('imports complete in main.py', flush=True)
 start_time = time.time()
 
@@ -62,20 +63,25 @@ def one_sim(inp, sim):
 
     #save list of map, mask, masked map, and correlation coefficient
     if sim==0:
-        data = [map_, mask, map_*mask] #contains map, mask, masked map, correlation coefficient
-        base_dir = f'images/{inp.comp}_cut{inp.cut}_ellmax{inp.ellmax}_nsims{inp.nsims}_nside{inp.nside}_nsideformasking{inp.nside_for_masking}'
-        if not os.path.isdir(base_dir):
-            subprocess.call(f'mkdir {base_dir}', shell=True, env=my_env)
-        corr = Cl_aw/np.sqrt(Cl_aa*Cl_ww)
-        data.append(corr)
-        pickle.dump(data, open(f'{base_dir}/mask_data.p', 'wb'))
-        print(f'saved {base_dir}/mask_data.p', flush=True)
+        if inp.save_files or inp.plot:
+            data = [map_, mask, map_*mask] #contains map, mask, masked map, correlation coefficient
+            base_dir = f'images/{inp.comp}_cut{inp.cut}_ellmax{inp.ellmax}_nsims{inp.nsims}_nside{inp.nside}_nsideformasking{inp.nside_for_masking}'
+            if not os.path.isdir(base_dir):
+                subprocess.call(f'mkdir {base_dir}', shell=True, env=my_env)
+            corr = Cl_aw/np.sqrt(Cl_aa*Cl_ww)
+            data.append(corr)
+            if inp.save_files:
+                pickle.dump(data, open(f'{base_dir}/mask_data.p', 'wb'))
+                print(f'saved {base_dir}/mask_data.p', flush=True)
+            if inp.plot:
+                plot_mask(inp, data, base_dir)
 
     print('***********************************************************', flush=True)
     print(f'Starting bispectrum calculation for sim {sim}', flush=True)
     bispectrum_aaw = Bispectrum(inp, map_-np.mean(map_), map_-np.mean(map_), mask-np.mean(mask), equal12=True)
     bispectrum_waw = Bispectrum(inp, mask-np.mean(mask), map_-np.mean(map_), mask-np.mean(mask), equal13=True)
 
+    print('***********************************************************', flush=True)
     print(f'Starting rho calculation for sim {sim}', flush=True)
     Rho = rho(inp, map_-np.mean(map_), mask-np.mean(mask), Cl_aw, Cl_aa, Cl_ww)
 
@@ -90,7 +96,6 @@ def one_sim(inp, sim):
 pool = mp.Pool(min(inp.nsims, 16))
 results = pool.starmap(one_sim, [(inp, sim) for sim in range(inp.nsims)])
 pool.close()
-print('len(results): ', len(results), flush=True)
 master_lhs = np.mean(np.array([res[0] for res in results]), axis=0)
 wlm_00 = np.mean(np.array([res[1] for res in results]), axis=0)
 alm_00 = np.mean(np.array([res[2] for res in results]), axis=0)
@@ -100,8 +105,8 @@ Cl_aw = np.mean(np.array([res[5] for res in results]), axis=0)
 bispectrum_aaw = np.mean(np.array([res[6] for res in results]), axis=0)
 bispectrum_waw = np.mean(np.array([res[7] for res in results]), axis=0)
 Rho = np.mean(np.array([res[8] for res in results]), axis=0)
-pickle.dump(Rho, open(f'rho_isw_ellmax{inp.ellmax}.p', 'wb')) #remove
-# trispectrum = pickle.load(open(f'rho_isw_ellmax{inp.ellmax}.p', 'rb')) 
+pickle.dump(Rho, open(f'rho/rho_isw_ellmax{inp.ellmax}.p', 'wb')) #remove
+# trispectrum = pickle.load(open(f'rho/rho_isw_ellmax{inp.ellmax}.p', 'rb')) 
 
 print('***********************************************************', flush=True)
 print('Starting MASTER comparison', flush=True)

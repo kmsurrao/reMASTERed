@@ -1,3 +1,5 @@
+#adapted from PolyBin
+
 import pywigxjpf as wig
 import healpy as hp
 import numpy as np
@@ -14,32 +16,6 @@ def compute_Cl(inp, lmax, data1, data2, equal12=False):
     Cl_summand = (1.+(m_arr>0))*data1_lm*data2_lm.conj()/(2.*l_arr+1.)
     Cl = [np.sum(Cl_summand*(l_arr==l)).real for l in range(lmax+1)]
     return Cl
-
-def Tl_norm(inp,lmax,lmin=0):
-
-    # Define 3j calculation
-    lmax_data = 3*inp.nside-1
-    wig.wig_table_init(lmax_data*2,9)
-    wig.wig_temp_init(lmax_data*2)
-    tj0 = lambda l1,l2,l3: wig.wig3jj(2*l1,2*l2,2*l3,0,0,0)
-
- 
-    # Compute normalization matrix
-    norm = np.zeros((lmax+1,lmax+1,lmax+1,lmax+1,lmax+1))
-
-    # Iterate over bins
-    for l1 in range(lmin,lmax+1):
-        for l2 in range(lmin,lmax+1):
-            for l3 in range(lmin,lmax+1):
-                for l4 in range(lmin,lmax+1):
-                    for L in range(max(abs(l1-l2),lmin),min(l1+l2+1,lmax+1)):
-                        if L<abs(l3-l4) or L>l3+l4: continue
-                        if (-1)**(l1+l2+L)==-1: continue # drop parity-odd modes
-                        if (-1)**(l3+l4+L)==-1: continue 
-                        
-                        norm[l1,l2,l3,l4,L] += tj0(l1,l2,L)**2*tj0(l3,l4,L)**2*(2.*l1+1.)*(2.*l2+1.)*(2.*l3+1.)*(2.*l4+1.)*(2.*L+1.)/(4.*np.pi)**2.
-
-    return norm
 
 def Tl_numerator(inp,lmax, data1, data2, data3, data4,
                  Cl12_th, Cl13_th, Cl14_th, Cl23_th, Cl24_th, Cl34_th,
@@ -78,7 +54,9 @@ def Tl_numerator(inp,lmax, data1, data2, data3, data4,
         I2_map = I1_map
     else:
         data2_lm = hp.map2alm(data2)
-        I2_map = [hp.alm2map((l_arr==l)*data2_lm,Nside) for l in range(lmin,lmax+1)]
+        I2_map = [hp.alm2map((l_arr==l)*data2_lm,
+        
+        de) for l in range(lmin,lmax+1)]
 
     # Map 3
     if equal13:
@@ -178,19 +156,6 @@ def Tl_numerator(inp,lmax, data1, data2, data3, data4,
                          
     return t4_num_ideal+t2_num_ideal+t0_num_ideal
 
-
-def Trispectrum(inp, a_map, w_map, Cl_aw, Cl_aa, Cl_ww):
-    tl_norm = Tl_norm(inp, inp.ellmax)
-    # Compute trispectrum
-    tl_out = Tl_numerator(inp, inp.ellmax,
-                          a_map,a_map,w_map,w_map,
-                          Cl_aa,Cl_aw,Cl_aw,Cl_aw,Cl_aw,Cl_ww,
-                          verb=True,
-                          equal12=True,equal34=True)
-    
-    # Normalize
-    tl_out[tl_norm!=0] /= tl_norm[tl_norm!=0]
-    return tl_out
 
 def rho(inp, a_map, w_map, Cl_aw, Cl_aa, Cl_ww):
     # Compute trispectrum without normalization

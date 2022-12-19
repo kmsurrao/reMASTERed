@@ -40,3 +40,6 @@ class Info(object):
         self.wigner_file = p['wigner_file']
         assert type(self.wigner_file) is str
 
+        self.save_files = p['save_files']
+        self.plot = p['plot']
+
