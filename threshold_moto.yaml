@@ -1,0 +1,16 @@
+nsims: 8
+ellmax: 30 #ellmax for power spectra
+nside: 64 #nside of maps, used in bi[tri]spectrum calculation
+nside_for_masking: 32 #nside for finding regions of map to threshold
+comp: 'ISW' #Choose 'ISW' or 'CMB'
+cut: 1.5 #Mask regions whose values are above cut*(sigma of map)
+aposcale: 2.5 #Apodization scale in degrees for NaMaster for mask
+cut_high: 1 #Set to 0 if only want to mask values above cut
+cut_low: 0 #Set to 0 if only want to mask values below cut
+
+map_file: 'isw.fits' #File for component map, for isw 'isw.fits', for cmb '/moto/hill/users/kms2320/websky_maps/cmb_lensed_nside1024_K.fits'
+wigner_file: '/moto/hill/users/kms2320/wigner3j_ellmax1000.p' #File containing wigner-3j symbols with zero m values, indexed as wigner3j[l1,l2,l3]. Leave empty if no such file.
+
+output_dir: '' #Output directory to save files and plots, if left empty a default will be created based on other input parameters
+save_files: 1 #Set to nonzero value to save pickle files for map, mask, masked map, and reMASTERed terms
+plot: 0 #Set to nonzero value to plot map, mask, masked map, and reMASTERed terms
