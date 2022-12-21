@@ -26,11 +26,11 @@ def plot_mask(inp, mask_data, base_dir):
     for n, ax in enumerate(axs):
         plt.axes(ax)
         if n==0:
-            hp.mollview(map_, fig=1, hold=True, title='', format='%.03g')
+            hp.mollview(10**6*map_, fig=1, hold=True, title='', format='%.03g')
         elif n==1:
             hp.mollview(mask, fig=2, hold=True, title='', format='%.03g', min=0.0, max=1.0)
         elif n==2:
-            hp.mollview(mask*map_, fig=3, hold=True, title='', format='%.03g', min=np.amin(map_), max=np.amax(map_))
+            hp.mollview(10**6*mask*map_, fig=3, hold=True, title='', format='%.03g', min=10**6*np.amin(map_), max=10**6*np.amax(map_))
         else:
             plt.plot(ells[2:], corr[2:])
             plt.xlabel(r'$\ell$')
@@ -39,7 +39,7 @@ def plot_mask(inp, mask_data, base_dir):
         plt.text(-0.1, 1.05, string.ascii_uppercase[n], transform=ax.transAxes, 
             size=18, weight='bold')
         if n==0 or n==2:
-            plt.text(0.47, -0.02, '[K]', transform=ax.transAxes,size=12)
+            plt.text(0.47, -0.02, r'$[\mu K]$', transform=ax.transAxes,size=12)
             
     plt.savefig(f'{base_dir}/maps_{inp.comp}.pdf')
     print(f'saved {base_dir}/maps_{inp.comp}.pdf', flush=True)
