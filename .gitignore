@@ -16,3 +16,4 @@ maps/*
 *.ipynb
 oliver*
 sbatch_script.sh
+*~
