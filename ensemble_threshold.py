@@ -12,6 +12,7 @@ from bispectrum import *
 from trispectrum import *
 from test_remastered import * 
 from plot_mask import *
+from wigner3j import *
 start_time = time.time()
 
 # main input file containing most specifications 
@@ -21,10 +22,16 @@ except IndexError:
     input_file = 'threshold_moto.yaml'
 
 # read in the input file and set up relevant info object
-inp = Info(input_file, thresholding=True)
+inp = Info(input_file, mask_provided=False)
 
 # current environment, also environment in which to run subprocesses
 my_env = os.environ.copy()
+
+#get wigner 3j symbols
+if inp.wigner_file:
+    inp.wigner3j = pickle.load(open(inp.wigner_file, 'rb'))[:inp.ellmax+1, :inp.ellmax+1, :inp.ellmax+1]
+else:
+    inp.wigner3j = compute_3j(inp.ellmax)
 
 def one_sim(inp, sim):
     '''
@@ -122,10 +129,14 @@ bispectrum_aaw = np.mean(np.array([res[6] for res in results]), axis=0)
 bispectrum_waw = np.mean(np.array([res[7] for res in results]), axis=0)
 Rho = np.mean(np.array([res[8] for res in results]), axis=0)
 pickle.dump(Rho, open(f'rho/rho_{inp.comp}_ellmax{inp.ellmax}.p', 'wb')) #remove
-# trispectrum = pickle.load(open(f'rho/rho_{inp.comp}_ellmax{inp.ellmax}.p', 'rb')) 
+# Rho = pickle.load(open(f'rho/rho_{inp.comp}_ellmax{inp.ellmax}.p', 'rb')) 
 
 #Get all terms of reMASTERed equation
 print('Starting reMASTERed comparison', flush=True)
-compare_master(inp, master_lhs, wlm_00, alm_00, Cl_aa, Cl_ww, Cl_aw, bispectrum_aaw, bispectrum_waw, Rho, my_env)
+if inp.output_dir:
+    base_dir = inp.output_dir
+else:
+    base_dir = f'{inp.comp}_cut{inp.cut}_ellmax{inp.ellmax}_nsims{inp.nsims}_nside{inp.nside}_nsideformasking{inp.nside_for_masking}'
+compare_master(inp, master_lhs, wlm_00, alm_00, Cl_aa, Cl_ww, Cl_aw, bispectrum_aaw, bispectrum_waw, Rho, my_env, base_dir=base_dir)
 
 print("--- %s seconds ---" % (time.time() - start_time), flush=True)

@@ -3,12 +3,13 @@ import os
 import subprocess
 import numpy as np
 import healpy as hp
+import time
+import string 
 from input import Info
 from bispectrum import *
 from trispectrum import *
 from test_remastered import *
-import time
-import string 
+from wigner3j import *
 from plot_mask import *
 start_time = time.time()
 
@@ -19,10 +20,17 @@ except IndexError:
     input_file = 'moto.yaml'
 
 # read in the input file and set up relevant info object
-inp = Info(input_file, thresholding=False)
+inp = Info(input_file, mask_provided=True)
 
 # current environment, also environment in which to run subprocesses
 my_env = os.environ.copy()
+
+#get wigner 3j symbols
+if inp.wigner_file:
+    inp.wigner3j = pickle.load(open(inp.wigner_file, 'rb'))[:inp.ellmax+1, :inp.ellmax+1, :inp.ellmax+1]
+else:
+    inp.wigner3j = compute_3j(inp.ellmax)
+
 
 lmax_data = 3*inp.nside-1
 
@@ -77,6 +85,6 @@ master_lhs = hp.anafast(map_*mask, lmax=inp.ellmax)
 
 #Get all terms of reMASTERed equation
 print('Starting reMASTERed comparison', flush=True)
-compare_master(inp, master_lhs, wlm[0], alm[0], Cl_aa, Cl_ww, Cl_aw, bispectrum_aaw, bispectrum_waw, Rho, my_env)
+compare_master(inp, master_lhs, wlm[0], alm[0], Cl_aa, Cl_ww, Cl_aw, bispectrum_aaw, bispectrum_waw, Rho, my_env, base_dir=base_dir)
 
 print("--- %s seconds ---" % (time.time() - start_time), flush=True)

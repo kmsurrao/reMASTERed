@@ -1,6 +1,5 @@
 #Code adapted from PolyBin O. H. E. Philcox (2022), in prep.
 
-import pywigxjpf as wig
 import healpy as hp
 import numpy as np
 
@@ -36,9 +35,6 @@ def Tl_numerator(inp,lmax, data1, data2, data3, data4,
     # Define 3j calculation
     lmax_data = 3*inp.nside-1
     l_arr,m_arr = hp.Alm.getlm(lmax_data)
-    wig.wig_table_init(lmax_data*2,9)
-    wig.wig_temp_init(lmax_data*2)
-    tj0 = lambda l1,l2,l3: wig.wig3jj(2*l1,2*l2,2*l3,0,0,0)
     Nside = inp.nside
     
     
@@ -138,7 +134,7 @@ def Tl_numerator(inp,lmax, data1, data2, data3, data4,
                             if (-1)**(l3+l4+L)==-1: continue 
 
                             # Compute two-field term
-                            prefactor = (2*l1+1)*(2*l2+1)*(2*L+1)/(4.*np.pi)*tj0(l1,l2,L)**2
+                            prefactor = (2*l1+1)*(2*l2+1)*(2*L+1)/(4.*np.pi)*inp.wigner3j[l1,l2,L]**2
                             t2_num_ideal[l1,l2,l3,l4,L] += -prefactor*(Cl13_th[l1]*Cl24[l2]+Cl13[l1]*Cl24_th[l2])
                             t0_num_ideal[l1,l2,l3,l4,L] += prefactor*Cl13_th[l1]*Cl24_th[l2]
                             
@@ -150,7 +146,7 @@ def Tl_numerator(inp,lmax, data1, data2, data3, data4,
                             if (-1)**(l3+l4+L)==-1: continue 
 
                             # Compute two-field term
-                            prefactor = (2*l1+1)*(2*l2+1)*(2*L+1)/(4.*np.pi)*tj0(l1,l2,L)**2
+                            prefactor = (2*l1+1)*(2*l2+1)*(2*L+1)/(4.*np.pi)*inp.wigner3j[l1,l2,L]**2
                             t2_num_ideal[l1,l2,l3,l4,L] += -prefactor*(Cl14_th[l1]*Cl23[l2]+Cl14[l1]*Cl23_th[l2])
                             t0_num_ideal[l1,l2,l3,l4,L] += prefactor*Cl14_th[l1]*Cl23_th[l2]
                          

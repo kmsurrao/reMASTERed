@@ -1,20 +1,20 @@
 import sys
-sys.path.insert(0, "./../" )
+sys.path.append("..")
 import os
 import subprocess
 import numpy as np
 import healpy as hp
 import multiprocessing as mp
+import h5py
+import pymaster as nmt
+import pickle
+import time
 from input import Info
 from generate_mask import *
 from bispectrum import *
 from trispectrum import *
 from test_remastered import *
-from helper import *
-import h5py
-import pymaster as nmt
-import pickle
-import time
+from wigner3j import *
 from plot_mask import *
 print('imports complete', flush=True)
 start_time = time.time()
@@ -26,15 +26,21 @@ except IndexError:
     input_file = 'threshold_moto.yaml'
 
 # read in the input file and set up relevant info object
-inp = Info(input_file, thresholding=True)
+inp = Info(input_file, mask_provided=False)
 
 # current environment, also environment in which to run subprocesses
 my_env = os.environ.copy()
 
+#get wigner 3j symbols
+if inp.wigner_file:
+    inp.wigner3j = pickle.load(open(inp.wigner_file, 'rb'))[:inp.ellmax+1, :inp.ellmax+1, :inp.ellmax+1]
+else:
+    inp.wigner3j = compute_3j(inp.ellmax)
+
 def get_flux_theta_phi():
     #read catalog file
-    f1 = h5py.File('/moto/hill/users/kms2320/repositories/halosky_maps/cen_chunk1_flux_353.h5', 'r')
-    f2 = h5py.File('/moto/hill/users/kms2320/repositories/halosky_maps/cen_chunk2_flux_353.h5', 'r')
+    f1 = h5py.File('/moto/hill/users/kms2320/repositories/halosky_maps/cen_chunk1_flux_153.h5', 'r')
+    f2 = h5py.File('/moto/hill/users/kms2320/repositories/halosky_maps/cen_chunk2_flux_153.h5', 'r')
     flux = np.concatenate((f1['flux'][()],  f2['flux'][()]))
     f3 = h5py.File('/moto/hill/users/kms2320/repositories/halosky_maps/cen_chunk1.h5', 'r')
     f4 = h5py.File('/moto/hill/users/kms2320/repositories/halosky_maps/cen_chunk2.h5', 'r')
@@ -71,20 +77,18 @@ def mask_above_fluxcut(inp, fluxCut, flux, theta, phi):
 
 
 
-def one_sim(inp, sim, fluxCut, flux, theta, phi):
+def one_sim(inp, fluxCut, flux, theta, phi):
 
     scratch_path = '/moto/hill/users/kms2320/repositories/halosky_maps'
 
     lmax_data = 3*inp.nside-1
 
-    #get simulated map
-    # map_ = hp.read_map(f'{scratch_path}/maps/tsz_{sim:05d}.fits')
+    #load compton-y map
     map_ = hp.read_map(f'{scratch_path}/tsz.fits')  
     map_ = hp.ud_grade(map_, inp.nside)
 
     #create threshold mask for component map
-    print('***********************************************************', flush=True)
-    print(f'Starting mask generation for sim {sim}', flush=True)
+    print('Starting mask generation', flush=True)
     mask = mask_above_fluxcut(inp, fluxCut, flux, theta, phi)
 
     #get power spectra and bispectra
@@ -107,7 +111,10 @@ def one_sim(inp, sim, fluxCut, flux, theta, phi):
     #make plot of map, mask, masked map, and correlation coefficient
     if inp.save_files or inp.plot:
         data = [map_, mask, map_*mask] #contains map, mask, masked map, correlation coefficient
-        base_dir = f'images/tSZ_mask_IR_ellmax{inp.ellmax}_nside{inp.nside}'
+        if inp.output_dir:
+            base_dir = inp.output_dir
+        else:
+            base_dir = f'images/tSZ_mask_IR_ellmax{inp.ellmax}_nside{inp.nside}'
         if not os.path.isdir(base_dir):
             subprocess.call(f'mkdir {base_dir}', shell=True, env=my_env)
         corr = Cl_aw/np.sqrt(Cl_aa*Cl_ww)
@@ -118,32 +125,32 @@ def one_sim(inp, sim, fluxCut, flux, theta, phi):
         if inp.plot:
             plot_mask(inp, mask_data, base_dir)
 
-    print('***********************************************************', flush=True)
-    print(f'Starting bispectrum calculation for sim {sim}', flush=True)
+    print('Starting bispectrum calculation', flush=True)
     bispectrum_aaw = Bispectrum(inp, map_-np.mean(map_), map_-np.mean(map_), mask-np.mean(mask), equal12=True)
     bispectrum_waw = Bispectrum(inp, mask-np.mean(mask), map_-np.mean(map_), mask-np.mean(mask), equal13=True)
 
-    print(f'Starting trispectrum calculation for sim {sim}', flush=True)
+    print('Starting trispectrum calculation for', flush=True)
     Rho = rho(inp, map_-np.mean(map_), mask-np.mean(mask), Cl_aw, Cl_aa, Cl_ww)
 
     #get MASTER LHS
     master_lhs = hp.anafast(map_*mask, lmax=inp.ellmax)
 
-    return master_lhs, wlm[0], alm[0], Cl_aa, Cl_ww, Cl,_aw bispectrum_aaw, bispectrum_waw, Rho 
+    return master_lhs, wlm[0], alm[0], Cl_aa, Cl_ww, Cl_aw, bispectrum_aaw, bispectrum_waw, Rho 
 
 
 
-#make plots of MASTER equation with new terms
-# fluxCut = 7*10**(-3) #7 mJy
-fluxCut = 3.*10**(-6) 
+#make plots of reMASTERed equation with new terms
+fluxCut = 1.*10**(-7) #0.3 mJy
 flux, theta, phi = get_flux_theta_phi()
-master_lhs, wlm_00, alm_00, Cl_aa, Cl_ww, Cl_aw, bispectrum_aaw, bispectrum_waw, Rho = one_sim(inp, 0, fluxCut, flux, theta, phi)
+master_lhs, wlm_00, alm_00, Cl_aa, Cl_ww, Cl_aw, bispectrum_aaw, bispectrum_waw, Rho = one_sim(inp, fluxCut, flux, theta, phi)
 pickle.dump(Rho, open(f'rho/rho_tszmaskIR_ellmax{inp.ellmax}.p', 'wb')) #remove
 # Rho = pickle.load(open(f'rho/rho_tszmaskIR_ellmax{inp.ellmax}.p', 'rb')) 
 
-print('***********************************************************', flush=True)
-print('Starting MASTER comparison', flush=True)
-base_dir = f'images/tSZ_mask_IR_ellmax{inp.ellmax}_nside{inp.nside}'
+print('Starting reMASTERed comparison', flush=True)
+if inp.output_dir:
+    base_dir = inp.output_dir
+else:
+    base_dir = f'images/tSZ_mask_IR_ellmax{inp.ellmax}_nside{inp.nside}'
 compare_master(inp, master_lhs, wlm_00, alm_00, Cl_aa, Cl_ww, Cl_aw, bispectrum_aaw, bispectrum_waw, Rho, my_env, base_dir=base_dir)
 
 print("--- %s seconds ---" % (time.time() - start_time), flush=True)

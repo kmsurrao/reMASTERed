@@ -1,7 +1,7 @@
-nsims: 8
-ellmax: 30 #ellmax for power spectra
-nside: 64 #nside of maps, used in bi[tri]spectrum calculation
-nside_for_masking: 32 #nside for finding regions of map to threshold
+nsims: 16
+ellmax: 50 #ellmax for power spectra
+nside: 128 #nside of maps, used in bi[tri]spectrum calculation
+nside_for_masking: 64 #nside for finding regions of map to threshold
 comp: 'ISW' #Choose 'ISW' or 'CMB'
 cut: 1.5 #Mask regions whose values are above cut*(sigma of map)
 aposcale: 2.5 #Apodization scale in degrees for NaMaster for mask

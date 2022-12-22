@@ -15,12 +15,12 @@ def read_dict_from_yaml(yaml_file):
 class that contains map info (and associated data), specifications, etc., and handles input
 """
 class Info(object):
-    def __init__(self, input_file, thresholding=False):
+    def __init__(self, input_file, mask_provided=True):
         self.input_file = input_file
         p = read_dict_from_yaml(self.input_file)
 
-        #If doing ensemble-averaged thresholding operation for masks
-        if thresholding:
+        #If mask needs to be created
+        if not mask_provided:
             self.nsims = p['nsims']
             assert type(self.nsims) is int and self.nsims>=0, "nsims"
             self.ellmax = p['ellmax']

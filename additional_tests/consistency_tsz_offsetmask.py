@@ -1,18 +1,19 @@
 import sys
-sys.path.insert(0, "./../" )
+sys.path.append("..")
 import os
 import subprocess
 import numpy as np
 import healpy as hp
 import multiprocessing as mp
+import time
+import pickle
 from input import Info
 from generate_mask import *
 from bispectrum import *
 from trispectrum import *
 from interpolate_bispectrum import *
 from test_remastered import *
-import time
-import pickle
+from wigner3j import *
 print('imports complete in consistency_checks.py', flush=True)
 start_time = time.time()
 
@@ -23,10 +24,16 @@ except IndexError:
     input_file = 'threshold_moto.yaml'
 
 # read in the input file and set up relevant info object
-inp = Info(input_file, thresholding=True)
+inp = Info(input_file, mask_provided=False)
 
 # current environment, also environment in which to run subprocesses
 my_env = os.environ.copy()
+
+#get wigner 3j symbols
+if inp.wigner_file:
+    inp.wigner3j = pickle.load(open(inp.wigner_file, 'rb'))[:inp.ellmax+1, :inp.ellmax+1, :inp.ellmax+1]
+else:
+    inp.wigner3j = compute_3j(inp.ellmax)
 
 base_dir = '/moto/hill/users/kms2320/repositories/halosky_maps/maps/'
 

@@ -4,7 +4,7 @@ extra/*
 __pycache__/
 slurm-*.out
 *.sh*
-images/*
+*images/*
 masks/*
 bispectra/*
 *.png

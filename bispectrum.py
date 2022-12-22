@@ -1,6 +1,5 @@
 #Code adapted from PolyBin O. H. E. Philcox (2022), in prep.
 
-import pywigxjpf as wig
 import healpy as hp
 import numpy as np
 
@@ -9,11 +8,6 @@ def Bl_norm(inp):
     lmax = inp.ellmax
     lmax_data = 3*inp.nside-1
     Nside = inp.nside
-    
-    # Define 3j calculation
-    wig.wig_table_init(lmax_data*2,9)
-    wig.wig_temp_init(lmax_data*2)
-    tj0 = lambda l1,l2,l3: wig.wig3jj(2*l1,2*l2,2*l3,0,0,0)
 
     # Define pixel area
     Npix = 12*Nside**2
@@ -26,9 +20,8 @@ def Bl_norm(inp):
     for l1 in range(lmax+1):
         for l2 in range(lmax+1):
             for l3 in range(abs(l1-l2),min(l1+l2+1,lmax+1)):
-
                 if (-1)**(l1+l2+l3)==-1: continue # 3j = 0 here
-                norm[l1,l2,l3] += tj0(l1,l2,l3)**2*(2.*l1+1.)*(2.*l2+1.)*(2.*l3+1.)/(4.*np.pi)
+                norm[l1,l2,l3] += inp.wigner3j[l1,l2,l3]**2*(2.*l1+1.)*(2.*l2+1.)*(2.*l3+1.)/(4.*np.pi)
 
     return norm
 
@@ -47,10 +40,6 @@ def Bl_numerator(inp, data1, data2, data3, equal12=False,equal23=False,equal13=F
     Nside = inp.nside
     l_arr,m_arr = hp.Alm.getlm(lmax_data)
     
-    # Define 3j calculation
-    wig.wig_table_init(lmax_data*2,9)
-    wig.wig_temp_init(lmax_data*2)
-    tj0 = lambda l1,l2,l3: wig.wig3jj(2*l1,2*l2,2*l3,0,0,0)
 
     # Define pixel area
     Npix = 12*Nside**2
