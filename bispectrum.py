@@ -4,6 +4,15 @@ import healpy as hp
 import numpy as np
 
 def Bl_norm(inp):
+    '''
+    Computes bispectrum normalization
+
+    PARAMETER
+    inp: Info() object, contains information about input parameters
+
+    RETURNS
+    norm: 3D numpy array, indexed as norm[l1,l2,l3]
+    '''
 
     lmax = inp.ellmax
     lmax_data = 3*inp.nside-1
@@ -29,7 +38,16 @@ def Bl_norm(inp):
 
 def Bl_numerator(inp, data1, data2, data3, equal12=False,equal23=False,equal13=False):
     """
-    Compute the numerator of the idealized bispectrum estimator. NB: this doesn't subtract off the disconnected terms, so requires mean-zero maps!
+    Compute the numerator of the idealized bispectrum estimator. 
+    NB: this doesn't subtract off the disconnected terms, so requires mean-zero maps!
+
+    PARAMETERS
+    inp: Info() object, contains information about input parameters
+    data{i}: 1D numpy array, ith map input to bispectrum
+    equal{i}{j}: Bool, whether data{i}==data{j}
+
+    RETURNS
+    b_num_ideal: 3D numpy array, indexed as b_num_ideal[l1,l2,l3]
     """
     
     if np.abs(data1.mean())>0.1*data1.std() or np.abs(data2.mean())>0.1*data2.std() or np.abs(data3.mean())>0.1*data3.std():
@@ -87,9 +105,19 @@ def Bl_numerator(inp, data1, data2, data3, equal12=False,equal23=False,equal13=F
 
 
 def Bispectrum(inp, data1, data2, data3, equal12=False,equal23=False,equal13=False):
-    # Compute bispectra
+    '''
+    Computes bispectrum
+
+    PARAMETERS
+    inp: Info() object, contains information about input parameters
+    data{i}: 1D numpy array, ith map input to bispectrum
+    equal{i}{j}: Bool, whether data{i}==data{j}
+
+    RETURNS
+    bl_out: 3D numpy array, indexed as bl_out[l1,l2,l3]
+    '''
     bl_norm = Bl_norm(inp)
     bl_out = Bl_numerator(inp, data1, data2, data3, equal12=equal12, equal23=equal23, equal13=equal13)
-    # Normalize bispectra
+    # Normalize bispectrum
     bl_out[bl_norm!=0] /= bl_norm[bl_norm!=0]
     return bl_out

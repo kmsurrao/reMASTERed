@@ -38,21 +38,44 @@ else:
     inp.wigner3j = compute_3j(inp.ellmax)
 
 def get_flux_theta_phi():
-    #read catalog file
-    f1 = h5py.File('/moto/hill/users/kms2320/repositories/halosky_maps/cen_chunk1_flux_153.h5', 'r')
-    f2 = h5py.File('/moto/hill/users/kms2320/repositories/halosky_maps/cen_chunk2_flux_153.h5', 'r')
-    flux = np.concatenate((f1['flux'][()],  f2['flux'][()]))
-    f3 = h5py.File('/moto/hill/users/kms2320/repositories/halosky_maps/cen_chunk1.h5', 'r')
-    f4 = h5py.File('/moto/hill/users/kms2320/repositories/halosky_maps/cen_chunk2.h5', 'r')
-    theta = np.concatenate((f3['theta'][()],  f4['theta'][()]))
-    phi = np.concatenate((f3['phi'][()],  f4['phi'][()]))
-    print('read catalog', flush=True)
+    '''
+    Reads IR source catalogs and gets information about the sources
+
+    RETURNS
+    flux: 1D numpy array, contains flux of sources in MJy
+    theta: 1D numpy array, contains theta values of sources
+    phi: 1D numpy array, containns phi values of sources
+    '''
+
+    f1Flux = h5py.File('/moto/hill/users/kms2320/repositories/halosky_maps/cen_chunk1_flux_153.h5', 'r')
+    f2Flux = h5py.File('/moto/hill/users/kms2320/repositories/halosky_maps/cen_chunk2_flux_153.h5', 'r')
+    f3Flux = h5py.File('/moto/hill/users/kms2320/repositories/halosky_maps/sat_chunk1_flux_153.h5', 'r')
+    f4Flux = h5py.File('/moto/hill/users/kms2320/repositories/halosky_maps/sat_chunk2_flux_153.h5', 'r')
+    flux = np.concatenate((f1Flux['flux'][()],  f2Flux['flux'][()], f3Flux['flux'][()], f4Flux['flux'][()]))
+    f1 = h5py.File('/moto/hill/users/kms2320/repositories/halosky_maps/cen_chunk1.h5', 'r')
+    f2 = h5py.File('/moto/hill/users/kms2320/repositories/halosky_maps/cen_chunk2.h5', 'r')
+    f3 = h5py.File('/moto/hill/users/kms2320/repositories/halosky_maps/sat_chunk1.h5', 'r')
+    f4 = h5py.File('/moto/hill/users/kms2320/repositories/halosky_maps/sat_chunk2.h5', 'r')
+    theta = np.concatenate((f1['theta'][()], f2['theta'][()], f3['theta'][()],  f4['theta'][()]))
+    phi = np.concatenate((f1['phi'][()], f2['phi'][()], f3['phi'][()],  f4['phi'][()]))
+    print('read catalogs', flush=True)
     print("np.amax(flux): ", np.amax(flux), flush=True)
     print('np.mean(flux): ', np.mean(flux), flush=True)
     print('np.std(flux): ', np.std(flux), flush=True)
     return flux, theta, phi
 
 def mask_above_fluxcut(inp, fluxCut, flux, theta, phi):
+    '''
+    PARAMETERS
+    inp: Info() object, contains information about input parameters
+    fluxCut: float, minimum flux above which to mask sources, in MJy
+    flux: 1D numpy array, contains flux of sources in MJy
+    theta: 1D numpy array, contains theta values of sources
+    phi: 1D numpy array, containns phi values of sources
+
+    RETURNS
+    m: 1D numpy array, apodized mask that masks IR sources above fluxCut with 20 arcmin holes
+    '''
     #initialize mask of all ones
     m = np.ones(hp.nside2npix(inp.nside))
     #find where flux > fluxCut
@@ -78,39 +101,57 @@ def mask_above_fluxcut(inp, fluxCut, flux, theta, phi):
 
 
 def one_sim(inp, fluxCut, flux, theta, phi):
+    '''
+    PARAMETERS
+    inp: Info() object, contains information about input parameters
+    fluxCut: float, minimum flux above which to mask sources, in MJy
+    flux: 1D numpy array, contains flux of sources in MJy
+    theta: 1D numpy array, contains theta values of sources
+    phi: 1D numpy array, containns phi values of sources
+
+    RETURNS
+    master_lhs: 1D numpy array, directly computed power spectrum of masked map
+    wlm[0]: float, w_{00} for the mask
+    alm[0]: float, a_{00} for the map
+    Cl_aa: 1D numpy array, auto-spectrum of the map
+    Cl_ww: 1D numpy array, auto-spectrum of the mask
+    Cl_aw: 1D numpy array, cross-spectrum of the map and mask 
+    bispectrum_aaw: 3D numpy array indexed as bispectrum_aaw[l1,l2,l3], bispectrum consisting of two factors of map and one factor of mask 
+    bispectrum_waw: 3D numpy array indexed as bispectrum_waw[l1,l2,l3], bispectrum consisting of two factors of mask and one factor of map  
+    Rho: 5D numpy array indexed as Rho[l1,l2,l3,l4,L], estimator for unnormalized trispectrum
+    '''
 
     scratch_path = '/moto/hill/users/kms2320/repositories/halosky_maps'
-
-    lmax_data = 3*inp.nside-1
 
     #load compton-y map
     map_ = hp.read_map(f'{scratch_path}/tsz.fits')  
     map_ = hp.ud_grade(map_, inp.nside)
 
-    #create threshold mask for component map
+    #create IR source mask for component map
     print('Starting mask generation', flush=True)
     mask = mask_above_fluxcut(inp, fluxCut, flux, theta, phi)
 
-    #get power spectra and bispectra
+    #get alm and wlm for map and mask, respectively 
     alm = hp.map2alm(map_)
     wlm = hp.map2alm(mask)
 
-    #added below
+    #zero out modes above ellmax
+    lmax_data = 3*inp.nside-1
     l_arr,m_arr = hp.Alm.getlm(lmax_data)
     alm = alm*(l_arr<=inp.ellmax)
     wlm = wlm*(l_arr<=inp.ellmax)
     map_ = hp.alm2map(alm, nside=inp.nside)
     mask = hp.alm2map(wlm, nside=inp.nside)
 
-
+    #get auto- and cross-spectra for map and mask
     Cl_aa = hp.alm2cl(alm, lmax_out=inp.ellmax)
     Cl_ww = hp.alm2cl(wlm, lmax_out=inp.ellmax)
     Cl_aw = hp.anafast(map_, mask, lmax=inp.ellmax)
 
 
-    #make plot of map, mask, masked map, and correlation coefficient
+    #get list of map, mask, masked map, and correlation coefficient
     if inp.save_files or inp.plot:
-        data = [map_, mask, map_*mask] #contains map, mask, masked map, correlation coefficient
+        data = [map_, mask, map_*mask] #will contain map, mask, masked map, correlation coefficient
         if inp.output_dir:
             base_dir = inp.output_dir
         else:
@@ -129,7 +170,7 @@ def one_sim(inp, fluxCut, flux, theta, phi):
     bispectrum_aaw = Bispectrum(inp, map_-np.mean(map_), map_-np.mean(map_), mask-np.mean(mask), equal12=True)
     bispectrum_waw = Bispectrum(inp, mask-np.mean(mask), map_-np.mean(map_), mask-np.mean(mask), equal13=True)
 
-    print('Starting trispectrum calculation for', flush=True)
+    print('Starting trispectrum calculation', flush=True)
     Rho = rho(inp, map_-np.mean(map_), mask-np.mean(mask), Cl_aw, Cl_aa, Cl_ww)
 
     #get MASTER LHS
@@ -140,11 +181,11 @@ def one_sim(inp, fluxCut, flux, theta, phi):
 
 
 #make plots of reMASTERed equation with new terms
-fluxCut = 1.*10**(-7) #0.3 mJy
+fluxCut = 1.*10**(-7) #0.1 mJy
 flux, theta, phi = get_flux_theta_phi()
 master_lhs, wlm_00, alm_00, Cl_aa, Cl_ww, Cl_aw, bispectrum_aaw, bispectrum_waw, Rho = one_sim(inp, fluxCut, flux, theta, phi)
 pickle.dump(Rho, open(f'rho/rho_tszmaskIR_ellmax{inp.ellmax}.p', 'wb')) #remove
-# Rho = pickle.load(open(f'rho/rho_tszmaskIR_ellmax{inp.ellmax}.p', 'rb')) 
+# Rho = pickle.load(open(f'rho/rho_tszmaskIR_ellmax{inp.ellmax}.p', 'rb')) #remove
 
 print('Starting reMASTERed comparison', flush=True)
 if inp.output_dir:

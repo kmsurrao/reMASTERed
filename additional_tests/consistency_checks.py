@@ -37,8 +37,19 @@ else:
 
 
 def one_sim(inp, sim):
+    '''
+    PARAMETERS
+    inp: Info object, contains input specifications
+    sim: int, simulation number
 
-    lmax_data = 3*inp.nside-1
+    RETURNS
+    lhs_atildea: 1D numpy array, directly computed <a tilde(a)>
+    w_aa_term_atildea: 1D numpy array, <w><aa> term for <a tilde(a)>
+    aaw_term_atildea: 1D numpy array, <aaw> term for <a tilde(a)>
+    lhs_wtildea: 1D numpy array, directly computed <w tilde(a)>
+    w_aw_term_wtildea: 1D numpy array, <w><aw> term for <w tilde(a)>
+    waw_term_wtildea: 1D numpy array, <waw> term for <w tilde(a)>
+    '''
 
     np.random.seed(sim)
 
@@ -48,25 +59,22 @@ def one_sim(inp, sim):
     map_ = hp.synfast(map_cl, nside=inp.nside)
 
     #create threshold mask for component map
-    print('***********************************************************', flush=True)
     print(f'Starting mask generation sim {sim}', flush=True)
     mask = gen_mask(inp, map_, sim, testing_aniso=True)
 
-    #get power spectra and bispectra
-    print('***********************************************************', flush=True)
-    print(f'Starting bispectrum calculation sim {sim}', flush=True)
+    #get alm and wlm for map and mask, respectively 
     alm = hp.map2alm(map_)
     wlm = hp.map2alm(mask)
     
-    #added below
+    #zero out modes above ellmax
+    lmax_data = 3*inp.nside-1
     l_arr,m_arr = hp.Alm.getlm(lmax_data)
     alm = alm*(l_arr<=inp.ellmax)
     wlm = wlm*(l_arr<=inp.ellmax)
     map_ = hp.alm2map(alm, nside=inp.nside)
     mask = hp.alm2map(wlm, nside=inp.nside)
 
-    masked_map = map_*mask
-    masked_map_alm = hp.map2alm(masked_map, lmax=inp.ellmax)
+    #get auto- and cross-spectra for map and mask
     Cl_aa = hp.alm2cl(alm, lmax_out=inp.ellmax)
     Cl_ww = hp.alm2cl(wlm, lmax_out=inp.ellmax)
     Cl_aw = hp.anafast(map_, mask, lmax=inp.ellmax)
@@ -77,16 +85,15 @@ def one_sim(inp, sim):
     wigner = pickle.load(open(inp.wigner_file, 'rb'))[:inp.ellmax+1, :inp.ellmax+1, :inp.ellmax+1]
     
     #compare <a tilde(a)> to representation in terms of bispectrum
+    print(f'Starting bispectrum aaw calculation sim {sim}', flush=True)
     bispectrum_aaw = Bispectrum(inp, map_-np.mean(map_), map_-np.mean(map_), mask-np.mean(mask), equal12=True)
-    print(f'finished bispectrum calculation aaw sim {sim}', flush=True)
     lhs_atildea = hp.anafast(map_*mask, map_, lmax=inp.ellmax)
     aaw_term_atildea = float(1/(4*np.pi))*np.einsum('a,b,lab,lab,lab->l',2*l2+1,2*l3+1,wigner,wigner,bispectrum_aaw,optimize=True)
     w_aa_term_atildea = np.real(wlm[0])/np.sqrt(4*np.pi)*Cl_aa
 
     #compare <w tilde(a)> to representation in terms of Claw and w00
+    print(f'Starting bispectrum waw calculation sim {sim}', flush=True)
     bispectrum_waw = Bispectrum(inp,mask-np.mean(mask),map_-np.mean(map_),mask-np.mean(mask),equal13=True)
-    print(f'finished bispectrum calculation waw sim {sim}', flush=True)
-    wigner = pickle.load(open(inp.wigner_file, 'rb'))[:inp.ellmax+1, :inp.ellmax+1, :inp.ellmax+1]
     lhs_wtildea = hp.anafast(map_*mask, mask, lmax=inp.ellmax)
     w_aw_term_wtildea = float(1/np.sqrt(4*np.pi))*np.real(wlm[0])*Cl_aw #added no monopole here to test
     waw_term_wtildea = 1/(4*np.pi)*np.einsum('a,b,lab,lab,lab->l',2*l2+1,2*l3+1,wigner,wigner,bispectrum_waw)
@@ -115,8 +122,5 @@ if inp.save_files or inp.plot:
         print(f'saved {base_dir}/consistency.p', flush=True)
     if inp.plot:
         plot_consistency(inp, to_save, base_dir, start=2, logx=True, logy=False)
-
-
-
 
 print("--- %s seconds ---" % (time.time() - start_time), flush=True)

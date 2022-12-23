@@ -4,7 +4,19 @@ import healpy as hp
 import numpy as np
 
 def compute_Cl(inp, lmax, data1, data2, equal12=False):
-    """Compute the power spectrum up to some l-max"""
+    """
+    Compute the power spectrum up to some l-max
+
+    PARAMETERS
+    inp: Info() object, contains information about input parameters
+    lmax: int, maximum ell for which to calculate power spectrum
+    data1: 1D numpy array, first map input to power spectrum
+    data2: 1D numpy array, second map input to power spectrum
+    equal12: Bool, whether data1==data2
+
+    RETURNS
+    Cl: list, power spectrum of data1 and data2 up through lmax
+    """
     lmax_data = 3*inp.nside-1
     l_arr,m_arr = hp.Alm.getlm(lmax_data)
     data1_lm = hp.map2alm(data1)
@@ -16,9 +28,9 @@ def compute_Cl(inp, lmax, data1, data2, equal12=False):
     Cl = [np.sum(Cl_summand*(l_arr==l)).real for l in range(lmax+1)]
     return Cl
 
-def Tl_numerator(inp,lmax, data1, data2, data3, data4,
+def Tl_numerator(inp, lmax, data1, data2, data3, data4,
                  Cl12_th, Cl13_th, Cl14_th, Cl23_th, Cl24_th, Cl34_th,
-                 lmin=0,verb=False,
+                 lmin=0, verb=False,
                  equal12=False,equal13=False,equal14=False,equal23=False,equal24=False,equal34=False):
     """
     Compute the numerator of the idealized trispectrum estimator. 
@@ -27,6 +39,18 @@ def Tl_numerator(inp,lmax, data1, data2, data3, data4,
     Note that we index the output as t[l1,l2,l3,l4,L] for diagonal momentum L.
     We also drop the L=0 pieces, since these would require non-mean-zero correlators.
     If lmin > 0, we don't calculate any pieces with l<lmin; the output array still contains these pieces, just filled with zeros.
+
+    PARAMETERS
+    inp: Info() object, contains information about input parameters
+    lmax: int, maximum ell for which to calculate output
+    data{i}: 1D numpy array, ith map input to trispectrum
+    Cl{i}{j}_th: 1D numpy array, power spectrum of data{i} and data{j}
+    lmin: int, minimum ell for which to calculate output
+    verb: Bool, whether to print
+    equal{i}{j}: Bool, whether data{i}==data{j}
+
+    RETURNS
+    t4_num_ideal+t2_num_ideal+t0_num_ideal: 5D numpy array, indexed with [l1,l2,l3,l4,L]
     """
     
     if np.abs(data1.mean())>0.1*data1.std() or np.abs(data2.mean())>0.1*data2.std() or np.abs(data3.mean())>0.1*data3.std() or np.abs(data4.mean())>0.1*data4.std():
@@ -154,7 +178,20 @@ def Tl_numerator(inp,lmax, data1, data2, data3, data4,
 
 
 def rho(inp, a_map, w_map, Cl_aw, Cl_aa, Cl_ww):
-    # Compute trispectrum without normalization
+    '''
+    Compute trispectrum without normalization
+
+    PARAMETERS
+    inp: Info() object, contains information about input parameters
+    a_map: 1D numpy array, map of signal
+    w_map: 1D numpy array, map of mask
+    Cl_aw: 1D numpy array, cross-spectrum of the map and mask
+    Cl_aa: 1D numpy array, auto-spectrum of the map
+    Cl_ww: 1D numpy array, auto-spectrum of the mask 
+
+    RETURNS
+    tl_out: 5D numpy array, indexed as tl_out[l1,l2,l3,l4,L]
+    '''
     tl_out = Tl_numerator(inp, inp.ellmax,
                           a_map,a_map,w_map,w_map,
                           Cl_aa,Cl_aw,Cl_aw,Cl_aw,Cl_aw,Cl_ww,

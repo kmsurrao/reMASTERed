@@ -5,7 +5,6 @@ import numpy as np
 import healpy as hp
 import multiprocessing as mp
 import time
-import string
 from input import Info
 from generate_mask import *
 from bispectrum import *
@@ -21,7 +20,7 @@ try:
 except IndexError:
     input_file = 'threshold_moto.yaml'
 
-# read in the input file and set up relevant info object
+# read in the input file and set up Info object
 inp = Info(input_file, mask_provided=False)
 
 # current environment, also environment in which to run subprocesses
@@ -48,12 +47,10 @@ def one_sim(inp, sim):
     Cl_aw: 1D numpy array, cross-spectrum of the map and mask 
     bispectrum_aaw: 3D numpy array indexed as bispectrum_aaw[l1,l2,l3], bispectrum consisting of two factors of map and one factor of mask 
     bispectrum_waw: 3D numpy array indexed as bispectrum_waw[l1,l2,l3], bispectrum consisting of two factors of mask and one factor of map  
-    Rho  : 5D numpy array indexed as Rho[l1,l2,l3,l4,L], estimator for unnormalized trispectrum
+    Rho: 5D numpy array indexed as Rho[l1,l2,l3,l4,L], estimator for unnormalized trispectrum
     '''
 
     np.random.seed(sim)
-
-    lmax_data = 3*inp.nside-1
 
     #get simulated map
     map_ = hp.read_map(inp.map_file) 
@@ -69,6 +66,7 @@ def one_sim(inp, sim):
     wlm = hp.map2alm(mask)
 
     #zero out modes above ellmax
+    lmax_data = 3*inp.nside-1
     l_arr,m_arr = hp.Alm.getlm(lmax_data)
     alm = alm*(l_arr<=inp.ellmax)
     wlm = wlm*(l_arr<=inp.ellmax)
@@ -129,7 +127,7 @@ bispectrum_aaw = np.mean(np.array([res[6] for res in results]), axis=0)
 bispectrum_waw = np.mean(np.array([res[7] for res in results]), axis=0)
 Rho = np.mean(np.array([res[8] for res in results]), axis=0)
 pickle.dump(Rho, open(f'rho/rho_{inp.comp}_ellmax{inp.ellmax}.p', 'wb')) #remove
-# Rho = pickle.load(open(f'rho/rho_{inp.comp}_ellmax{inp.ellmax}.p', 'rb')) 
+# Rho = pickle.load(open(f'rho/rho_{inp.comp}_ellmax{inp.ellmax}.p', 'rb')) #remove
 
 #Get all terms of reMASTERed equation
 print('Starting reMASTERed comparison', flush=True)
