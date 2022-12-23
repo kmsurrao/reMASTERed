@@ -57,20 +57,36 @@ def one_sim(inp, sim):
     map_cl = hp.anafast(map_, lmax=inp.ellmax)
     map_ = hp.synfast(map_cl, nside=inp.nside)
 
+    # #create threshold mask for component map
+    # print(f'Starting mask generation for sim {sim}', flush=True)
+    # mask = gen_mask(inp, map_)
+
+    # #get alm and wlm for map and mask, respectively 
+    # alm = hp.map2alm(map_)
+    # wlm = hp.map2alm(mask)
+
+    # #zero out modes above ellmax
+    # lmax_data = 3*inp.nside-1
+    # l_arr,m_arr = hp.Alm.getlm(lmax_data)
+    # alm = alm*(l_arr<=inp.ellmax)
+    # wlm = wlm*(l_arr<=inp.ellmax)
+    # map_ = hp.alm2map(alm, nside=inp.nside)
+    # mask = hp.alm2map(wlm, nside=inp.nside)
+
+    #zero out modes above ellmax for map
+    lmax_data = 3*inp.nside-1
+    l_arr,m_arr = hp.Alm.getlm(lmax_data)
+    alm = hp.map2alm(map_)
+    alm = alm*(l_arr<=inp.ellmax)
+    map_ = hp.alm2map(alm, nside=inp.nside)
+
     #create threshold mask for component map
     print(f'Starting mask generation for sim {sim}', flush=True)
     mask = gen_mask(inp, map_)
 
-    #get alm and wlm for map and mask, respectively 
-    alm = hp.map2alm(map_)
+    #zero out modes above ellmax for mask
     wlm = hp.map2alm(mask)
-
-    #zero out modes above ellmax
-    lmax_data = 3*inp.nside-1
-    l_arr,m_arr = hp.Alm.getlm(lmax_data)
-    alm = alm*(l_arr<=inp.ellmax)
     wlm = wlm*(l_arr<=inp.ellmax)
-    map_ = hp.alm2map(alm, nside=inp.nside)
     mask = hp.alm2map(wlm, nside=inp.nside)
 
     #get auto- and cross-spectra for map and mask
