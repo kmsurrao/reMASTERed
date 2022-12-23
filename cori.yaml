@@ -1,7 +1,7 @@
 ellmax: 30 #ellmax for power spectra
 nside: 64 #nside of maps, used in bi[tri]spectrum calculation
 
-map_file: '/global/cscratch1/sd/kmsurrao/Correlated-Mask-Power-Spectrum/maps/isw.fits' #File for component map
+map_file: '/global/cscratch1/sd/kmsurrao/Correlated-Mask-Power-Spectrum/maps/isw.fits' #File for component map, assumed to be in Kelvin
 mask_file: ''
 wigner_file: '/global/homes/k/kmsurrao/NILC-Parameter-Pipeline/wigner3j_ellmax1000.p' #File containing wigner-3j symbols with zero m values, indexed as wigner3j[l1,l2,l3]. Leave empty if no such file.
 
