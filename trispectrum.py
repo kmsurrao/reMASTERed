@@ -74,9 +74,7 @@ def Tl_numerator(inp, lmax, data1, data2, data3, data4,
         I2_map = I1_map
     else:
         data2_lm = hp.map2alm(data2)
-        I2_map = [hp.alm2map((l_arr==l)*data2_lm,
-        
-        de) for l in range(lmin,lmax+1)]
+        I2_map = [hp.alm2map((l_arr==l)*data2_lm,Nside) for l in range(lmin,lmax+1)]
 
     # Map 3
     if equal13:
