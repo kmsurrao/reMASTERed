@@ -93,7 +93,7 @@ def one_sim(inp, sim):
     return master_lhs, wlm[0], alm[0], Cl_aa, Cl_ww, Cl_aw, bispectrum_aaw, bispectrum_waw, Rho 
 
 
-if __name__ == “main”: 
+if __name__ == 'main': 
 
     start_time = time.time()
 
