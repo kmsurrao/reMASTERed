@@ -60,6 +60,6 @@ def plot_consistency(inp, data, base_dir, start=2, logx=True, logy=False):
     plt.yticks(fontsize=20)
     plt.xticks(fontsize=20)
 
-    plt.savefig(f'{base_dir}/consistency_{comp}_{inp.ellmax}.pdf')
-    print(f'saved {base_dir}/consistency_{comp}_{inp.ellmax}.pdf', flush=True)
+    plt.savefig(f'{base_dir}/consistency_{inp.comp}_{inp.ellmax}.pdf')
+    print(f'saved {base_dir}/consistency_{inp.comp}_{inp.ellmax}.pdf', flush=True)
     return
