@@ -1,5 +1,6 @@
 import sys
-sys.path.append("..")
+sys.path.insert(0, "./../" )
+sys.path.insert(0, "./" )
 import os
 import subprocess
 import numpy as np

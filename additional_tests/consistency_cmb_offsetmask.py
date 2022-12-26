@@ -1,5 +1,6 @@
 import sys
-sys.path.append("..")
+sys.path.insert(0, "./../" )
+sys.path.insert(0, "./" )
 import os
 import subprocess
 import numpy as np
@@ -49,8 +50,9 @@ def one_sim(inp, sim, offset):
     np.random.seed(sim)
 
     #get simulated map
+    lmax_data = 3*inp.nside-1
     map_ = hp.read_map(inp.map_file) 
-    map_cl = hp.anafast(map_, lmax=inp.ellmax)
+    map_cl = hp.anafast(map_, lmax=lmax_data)
     map_ = hp.synfast(map_cl, inp.nside)
 
     #create W=a+A mask for component map
@@ -62,7 +64,6 @@ def one_sim(inp, sim, offset):
     wlm = hp.map2alm(mask)
 
     #zero out modes above ellmax
-    lmax_data = 3*inp.nside-1
     l_arr,m_arr = hp.Alm.getlm(lmax_data)
     alm = alm*(l_arr<=inp.ellmax)
     wlm = wlm*(l_arr<=inp.ellmax)

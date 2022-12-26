@@ -1,5 +1,6 @@
 import sys
-sys.path.append("..")
+sys.path.insert(0, "./../" )
+sys.path.insert(0, "./" )
 import os
 import subprocess
 import numpy as np
@@ -42,7 +43,7 @@ def one_sim(inp, sim):
 
     #create threshold mask for component map
     print(f'Starting mask generation sim {sim}', flush=True)
-    mask = gen_mask(inp, map_, sim, testing_aniso=True)
+    mask = gen_mask(inp, map_)
 
     #get alm and wlm for map and mask, respectively 
     alm = hp.map2alm(map_)
