@@ -122,7 +122,7 @@ if __name__ == '__main__':
 
     #save files and plot
     if inp.save_files or inp.plot:
-        to_save = [lhs_atildea, w_aa_term_atildea, aaw_term_atildea, lhs_wtildea, w_aw_term_wtildea, waw_term_wtildea]
+        to_save = [lhs_atildea, w_aa_term_atildea, a_aw_term_atildea, aaw_term_atildea, lhs_wtildea, w_aw_term_wtildea, a_ww_term_wtildea, waw_term_wtildea]
         base_dir = f'images/consistency_{inp.comp}_cut{inp.cut}_ellmax{inp.ellmax}_nsims{inp.nsims}_nside{inp.nside}_nsideformasking{inp.nside_for_masking}'
         if not os.path.isdir(base_dir):
             subprocess.call(f'mkdir {base_dir}', shell=True, env=my_env)
