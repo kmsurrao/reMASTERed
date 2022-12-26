@@ -17,15 +17,16 @@ def compute_Cl(inp, lmax, data1, data2, equal12=False):
     RETURNS
     Cl: list, power spectrum of data1 and data2 up through lmax
     """
-    lmax_data = 3*inp.nside-1
-    l_arr,m_arr = hp.Alm.getlm(lmax_data)
-    data1_lm = hp.map2alm(data1)
-    if equal12:
-        data2_lm = data1_lm
-    else:
-        data2_lm = hp.map2alm(data2)
-    Cl_summand = (1.+(m_arr>0))*data1_lm*data2_lm.conj()/(2.*l_arr+1.)
-    Cl = [np.sum(Cl_summand*(l_arr==l)).real for l in range(lmax+1)]
+    Cl = hp.anafast(data1, data2, lmax=lmax)
+    # lmax_data = 3*inp.nside-1
+    # l_arr,m_arr = hp.Alm.getlm(lmax_data)
+    # data1_lm = hp.map2alm(data1)
+    # if equal12:
+    #     data2_lm = data1_lm
+    # else:
+    #     data2_lm = hp.map2alm(data2)
+    # Cl_summand = (1.+(m_arr>0))*data1_lm*data2_lm.conj()/(2.*l_arr+1.)
+    # Cl = [np.sum(Cl_summand*(l_arr==l)).real for l in range(lmax+1)]
     return Cl
 
 def Tl_numerator(inp, lmax, data1, data2, data3, data4,

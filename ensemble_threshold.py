@@ -56,9 +56,9 @@ def one_sim(inp, sim):
     mask = hp.alm2map(wlm, nside=inp.nside)
 
     #get auto- and cross-spectra for map and mask
-    Cl_aa = hp.anafast(map_-np.mean(map_), lmax=inp.ellmax)
-    Cl_ww = hp.anafast(mask-np.mean(mask), lmax=inp.ellmax)
-    Cl_aw = hp.anafast(map_-np.mean(map_), mask-np.mean(mask), lmax=inp.ellmax)
+    Cl_aa = hp.anafast(map_, lmax=inp.ellmax)
+    Cl_ww = hp.anafast(mask, lmax=inp.ellmax)
+    Cl_aw = hp.anafast(map_, mask, lmax=inp.ellmax)
 
     #get list of map, mask, masked map, and correlation coefficient
     if sim==0:
@@ -85,7 +85,10 @@ def one_sim(inp, sim):
 
     #Compute rho (unnormalized trispectrum)
     print(f'Starting rho calculation for sim {sim}', flush=True)
-    Rho = rho(inp, map_-np.mean(map_), mask-np.mean(mask), Cl_aw, Cl_aa, Cl_ww)
+    Cl_aa_rho = hp.anafast(map_-np.mean(map_), lmax=inp.ellmax)
+    Cl_ww_rho = hp.anafast(mask-np.mean(mask), lmax=inp.ellmax)
+    Cl_aw_rho = hp.anafast(map_-np.mean(map_), mask-np.mean(mask), lmax=inp.ellmax)
+    Rho = rho(inp, map_-np.mean(map_), mask-np.mean(mask), Cl_aw_rho, Cl_aa_rho, Cl_ww_rho)
 
     #get MASTER LHS (directly computed power spectrum of masked map)
     master_lhs = hp.anafast(map_*mask, lmax=inp.ellmax)
@@ -93,7 +96,7 @@ def one_sim(inp, sim):
     return master_lhs, wlm[0], alm[0], Cl_aa, Cl_ww, Cl_aw, bispectrum_aaw, bispectrum_waw, Rho 
 
 
-if __name__ == 'main': 
+if __name__ == '__main__': 
 
     start_time = time.time()
 
