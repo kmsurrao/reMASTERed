@@ -1,5 +1,3 @@
-#This script assumes zero-mean fields.
-
 import sys
 sys.path.append("..")
 import os
@@ -37,6 +35,7 @@ def one_sim(inp, sim):
     np.random.seed(sim)
 
     #get simulated map
+    lmax_data = 3*inp.nside-1
     map_ = hp.read_map(inp.map_file) 
     map_cl = hp.anafast(map_, lmax=lmax_data)
     map_ = hp.synfast(map_cl, nside=inp.nside)
@@ -50,7 +49,6 @@ def one_sim(inp, sim):
     wlm = hp.map2alm(mask)
     
     #zero out modes above ellmax
-    lmax_data = 3*inp.nside-1
     l_arr,m_arr = hp.Alm.getlm(lmax_data)
     alm = alm*(l_arr<=inp.ellmax)
     wlm = wlm*(l_arr<=inp.ellmax)
