@@ -15,28 +15,6 @@ from trispectrum import *
 from interpolate_bispectrum import *
 from test_remastered import *
 from wigner3j import *
-print('imports complete in consistency_checks.py', flush=True)
-start_time = time.time()
-
-# main input file containing most specifications 
-try:
-    input_file = (sys.argv)[1]
-except IndexError:
-    input_file = 'threshold_moto.yaml'
-
-# read in the input file and set up relevant info object
-inp = Info(input_file, mask_provided=False)
-
-# current environment, also environment in which to run subprocesses
-my_env = os.environ.copy()
-
-#get wigner 3j symbols
-if inp.wigner_file:
-    inp.wigner3j = pickle.load(open(inp.wigner_file, 'rb'))[:inp.ellmax+1, :inp.ellmax+1, :inp.ellmax+1]
-else:
-    inp.wigner3j = compute_3j(inp.ellmax)
-
-base_dir = '/moto/hill/users/kms2320/repositories/halosky_maps/maps/'
 
 def one_sim(inp, sim, offset, base_dir):
     '''
@@ -101,33 +79,57 @@ def one_sim(inp, sim, offset, base_dir):
     return lhs, Cl_aa, Cl_ww, Cl_aw, bispectrum_aaw, w00, bispectrum_waw, a00, Rho
 
 
-#read map
-map_ = hp.read_map(base_dir + f'tsz_00000.fits') 
-map_ = hp.ud_grade(map_, inp.nside)
+if __name__=='__main__':
 
-#find offset A for mask W=a+A
-offset = 1.e-6
+    start_time = time.time()
 
-#do ensemble averaging
-pool = mp.Pool(min(inp.nsims, 16))
-results = pool.starmap(one_sim, [(inp, sim, offset, base_dir) for sim in range(inp.nsims)])
-pool.close()
-master_lhs = np.mean(np.array([res[0] for res in results]), axis=0)
-Cl_aa = np.mean(np.array([res[1] for res in results]), axis=0)
-Cl_ww = np.mean(np.array([res[2] for res in results]), axis=0)
-Cl_aw = np.mean(np.array([res[3] for res in results]), axis=0)
-bispectrum_aaw = np.mean(np.array([res[4] for res in results]), axis=0)
-w00 = np.mean(np.array([res[5] for res in results]), axis=0)
-bispectrum_waw = np.mean(np.array([res[6] for res in results]), axis=0)
-a00 = np.mean(np.array([res[7] for res in results]), axis=0)
-Rho = np.mean(np.array([res[8] for res in results]), axis=0)
-pickle.dump(Rho, open(f'rho_tsz_ellmax{inp.ellmax}.p', 'wb')) #remove
-# Rho = pickle.load(open(f'rho_tsz_ellmax{inp.ellmax}.p', 'rb')) #remove
+    # main input file containing most specifications 
+    try:
+        input_file = (sys.argv)[1]
+    except IndexError:
+        input_file = 'threshold_moto.yaml'
+
+    # read in the input file and set up relevant info object
+    inp = Info(input_file, mask_provided=False)
+
+    # current environment, also environment in which to run subprocesses
+    my_env = os.environ.copy()
+
+    #get wigner 3j symbols
+    if inp.wigner_file != '':
+        inp.wigner3j = pickle.load(open(inp.wigner_file, 'rb'))[:inp.ellmax+1, :inp.ellmax+1, :inp.ellmax+1]
+    else:
+        inp.wigner3j = compute_3j(inp.ellmax)
+
+    base_dir = '/moto/hill/users/kms2320/repositories/halosky_maps/maps/'
+
+    #read map
+    map_ = hp.read_map(base_dir + f'tsz_00000.fits') 
+    map_ = hp.ud_grade(map_, inp.nside)
+
+    #find offset A for mask W=a+A
+    offset = 1.e-6
+
+    #do ensemble averaging
+    pool = mp.Pool(min(inp.nsims, 16))
+    results = pool.starmap(one_sim, [(inp, sim, offset, base_dir) for sim in range(inp.nsims)])
+    pool.close()
+    master_lhs = np.mean(np.array([res[0] for res in results]), axis=0)
+    Cl_aa = np.mean(np.array([res[1] for res in results]), axis=0)
+    Cl_ww = np.mean(np.array([res[2] for res in results]), axis=0)
+    Cl_aw = np.mean(np.array([res[3] for res in results]), axis=0)
+    bispectrum_aaw = np.mean(np.array([res[4] for res in results]), axis=0)
+    w00 = np.mean(np.array([res[5] for res in results]), axis=0)
+    bispectrum_waw = np.mean(np.array([res[6] for res in results]), axis=0)
+    a00 = np.mean(np.array([res[7] for res in results]), axis=0)
+    Rho = np.mean(np.array([res[8] for res in results]), axis=0)
+    pickle.dump(Rho, open(f'rho_tsz_ellmax{inp.ellmax}.p', 'wb')) #remove
+    # Rho = pickle.load(open(f'rho_tsz_ellmax{inp.ellmax}.p', 'rb')) #remove
 
 
-#test reMASTERed
-print('Testing reMASTERed', flush=True)
-compare_master(inp, master_lhs, w00, a00, Cl_aa, Cl_ww, Cl_aw, bispectrum_aaw, bispectrum_waw, Rho, my_env, base_dir=f'images/tSZ_w_eq_a_plus_A_ellmax{inp.ellmax}')
+    #test reMASTERed
+    print('Testing reMASTERed', flush=True)
+    compare_master(inp, master_lhs, w00, a00, Cl_aa, Cl_ww, Cl_aw, bispectrum_aaw, bispectrum_waw, Rho, my_env, base_dir=f'images/tSZ_w_eq_a_plus_A_ellmax{inp.ellmax}')
 
 
-print("--- %s seconds ---" % (time.time() - start_time), flush=True)
+    print("--- %s seconds ---" % (time.time() - start_time), flush=True)

@@ -13,25 +13,7 @@ from bispectrum import *
 from interpolate_bispectrum import *
 from test_remastered import *
 from wigner3j import *
-start_time = time.time()
 
-# main input file containing most specifications 
-try:
-    input_file = (sys.argv)[1]
-except IndexError:
-    input_file = 'threshold_moto.yaml'
-
-# read in the input file and set up relevant info object
-inp = Info(input_file, mask_provided=False)
-
-# current environment, also environment in which to run subprocesses
-my_env = os.environ.copy()
-
-#get wigner 3j symbols
-if inp.wigner_file:
-    inp.wigner3j = pickle.load(open(inp.wigner_file, 'rb'))[:inp.ellmax+1, :inp.ellmax+1, :inp.ellmax+1]
-else:
-    inp.wigner3j = compute_3j(inp.ellmax)
 
 def one_sim(inp, sim, offset):
      '''
@@ -81,26 +63,47 @@ def one_sim(inp, sim, offset):
     return lhs, Cl_aa, Cl_ww, Cl_aw
 
 
-#read map
-map_ = hp.read_map(inp.map_file) 
-map_ = hp.ud_grade(map_, inp.nside)
+if __name__=='__main__':
+    start_time = time.time()
 
-#find offset A for mask W=a+A
-offset = 1.5*abs(np.amin(map_))
-print('offset: ', offset, flush=True)
+    # main input file containing most specifications 
+    try:
+        input_file = (sys.argv)[1]
+    except IndexError:
+        input_file = 'threshold_moto.yaml'
 
-#do ensemble averaging
-pool = mp.Pool(min(inp.nsims, 16))
-results = pool.starmap(one_sim, [(inp, sim, offset) for sim in range(inp.nsims)])
-pool.close()
-lhs = np.mean(np.array([res[0] for res in results]), axis=0)
-Cl_aa = np.mean(np.array([res[1] for res in results]), axis=0)
-Cl_ww = np.mean(np.array([res[2] for res in results]), axis=0)
-Cl_aw = np.mean(np.array([res[3] for res in results]), axis=0)
+    # read in the input file and set up relevant info object
+    inp = Info(input_file, mask_provided=False)
 
-#test reMASTERed
-print('Testing reMASTERed', flush=True)
-compare_master(inp, lhs, 0, 0, Cl_aa, Cl_ww, Cl_aw, np.zeros((inp.ellmax+1, inp.ellmax+1, inp.ellmax+1)), np.zeros((inp.ellmax+1, inp.ellmax+1, inp.ellmax+1)), np.zeros((inp.ellmax+1, inp.ellmax+1, inp.ellmax+1, inp.ellmax+1, inp.ellmax+1)), my_env, base_dir=f'images/{inp.comp}_w_eq_a_plus_A_ellmax{inp.ellmax}')
+    # current environment, also environment in which to run subprocesses
+    my_env = os.environ.copy()
+
+    #get wigner 3j symbols
+    if inp.wigner_file != '':
+        inp.wigner3j = pickle.load(open(inp.wigner_file, 'rb'))[:inp.ellmax+1, :inp.ellmax+1, :inp.ellmax+1]
+    else:
+        inp.wigner3j = compute_3j(inp.ellmax)
+
+    #read map
+    map_ = hp.read_map(inp.map_file) 
+    map_ = hp.ud_grade(map_, inp.nside)
+
+    #find offset A for mask W=a+A
+    offset = 1.5*abs(np.amin(map_))
+    print('offset: ', offset, flush=True)
+
+    #do ensemble averaging
+    pool = mp.Pool(min(inp.nsims, 16))
+    results = pool.starmap(one_sim, [(inp, sim, offset) for sim in range(inp.nsims)])
+    pool.close()
+    lhs = np.mean(np.array([res[0] for res in results]), axis=0)
+    Cl_aa = np.mean(np.array([res[1] for res in results]), axis=0)
+    Cl_ww = np.mean(np.array([res[2] for res in results]), axis=0)
+    Cl_aw = np.mean(np.array([res[3] for res in results]), axis=0)
+
+    #test reMASTERed
+    print('Testing reMASTERed', flush=True)
+    compare_master(inp, lhs, 0, 0, Cl_aa, Cl_ww, Cl_aw, np.zeros((inp.ellmax+1, inp.ellmax+1, inp.ellmax+1)), np.zeros((inp.ellmax+1, inp.ellmax+1, inp.ellmax+1)), np.zeros((inp.ellmax+1, inp.ellmax+1, inp.ellmax+1, inp.ellmax+1, inp.ellmax+1)), my_env, base_dir=f'images/{inp.comp}_w_eq_a_plus_A_ellmax{inp.ellmax}')
 
 
-print("--- %s seconds ---" % (time.time() - start_time), flush=True)
+    print("--- %s seconds ---" % (time.time() - start_time), flush=True)

@@ -10,6 +10,7 @@ from trispectrum import *
 from test_remastered import *
 from wigner3j import *
 from plot_mask import *
+
 start_time = time.time()
 
 # main input file containing most specifications 
@@ -25,7 +26,7 @@ inp = Info(input_file, mask_provided=True)
 my_env = os.environ.copy()
 
 #get wigner 3j symbols
-if inp.wigner_file:
+if inp.wigner_file != '':
     inp.wigner3j = pickle.load(open(inp.wigner_file, 'rb'))[:inp.ellmax+1, :inp.ellmax+1, :inp.ellmax+1]
 else:
     inp.wigner3j = compute_3j(inp.ellmax)
