@@ -64,7 +64,7 @@ def one_sim(inp, sim):
     #load 3j symbols and set up arrays
     l2 = np.arange(inp.ellmax+1)
     l3 = np.arange(inp.ellmax+1)
-    wigner = pickle.load(open(inp.wigner_file, 'rb'))[:inp.ellmax+1, :inp.ellmax+1, :inp.ellmax+1]
+    wigner = inp.wigner3j
     
     #compare <a tilde(a)> to representation in terms of bispectrum
     print(f'Starting bispectrum aaw calculation sim {sim}', flush=True)
