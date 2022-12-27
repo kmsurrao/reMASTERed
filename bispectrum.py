@@ -13,16 +13,9 @@ def Bl_norm(inp):
     RETURNS
     norm: 3D numpy array, indexed as norm[l1,l2,l3]
     '''
-
-    lmax = inp.ellmax
-    lmax_data = 3*inp.nside-1
-    Nside = inp.nside
-
-    # Define pixel area
-    Npix = 12*Nside**2
-    A_pix = 4.*np.pi/Npix
- 
+    
     # Compute normalization matrix
+    lmax = inp.ellmax
     norm = np.zeros((lmax+1,lmax+1,lmax+1))
 
     # Iterate over bins
@@ -89,7 +82,6 @@ def Bl_numerator(inp, data1, data2, data3, equal12=False,equal23=False,equal13=F
     b_num_ideal = np.zeros((lmax+1,lmax+1,lmax+1))
 
     # Iterate over bins
-    index = 0
     for l1 in range(lmax+1):
         for l2 in range(lmax+1):
             for l3 in range(abs(l1-l2),min(l1+l2+1,lmax+1)):

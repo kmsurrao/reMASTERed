@@ -16,21 +16,16 @@ from plot_consistency import *
 from wigner3j import *
 
 
-def one_sim(inp, sim):
+
+def get_one_map_and_mask(inp, sim):
     '''
     PARAMETERS
     inp: Info object, contains input specifications
     sim: int, simulation number
 
     RETURNS
-    lhs_atildea: 1D numpy array, directly computed <a tilde(a)>
-    w_aa_term_atildea: 1D numpy array, <w><aa> term for <a tilde(a)>
-    a_aw_term_atildea: 1D numpy array, <a><aw> term for <a tilde(a)>
-    aaw_term_atildea: 1D numpy array, <aaw> term for <a tilde(a)>
-    lhs_wtildea: 1D numpy array, directly computed <w tilde(a)>
-    w_aw_term_wtildea: 1D numpy array, <w><aw> term for <w tilde(a)>
-    a_ww_term_wtildea: 1D numpy array, <a><ww> term for <w tilde(a)>
-    waw_term_wtildea: 1D numpy array, <waw> term for <w tilde(a)>
+    map_: 1D numpy array, contains simulated map
+    mask: 1D numpy array, contains threshold mask
     '''
 
     np.random.seed(sim)
@@ -56,10 +51,41 @@ def one_sim(inp, sim):
     map_ = hp.alm2map(alm, nside=inp.nside)
     mask = hp.alm2map(wlm, nside=inp.nside)
 
+    return map_, mask
+
+
+def one_sim(inp, sim, map_, mask, map_avg, mask_avg):
+    '''
+    PARAMETERS
+    inp: Info object, contains input specifications
+    sim: int, simulation number
+    map_: 1D numpy array, contains simulated map
+    mask: 1D numpy array, contains threshold mask
+    map_avg: float, average pixel value over all map realizations
+    mask_avg: float, average pixel value over all mask realizations
+
+    RETURNS
+    lhs_atildea: 1D numpy array, directly computed <a tilde(a)>
+    w_aa_term_atildea: 1D numpy array, <w><aa> term for <a tilde(a)>
+    a_aw_term_atildea: 1D numpy array, <a><aw> term for <a tilde(a)>
+    aaw_term_atildea: 1D numpy array, <aaw> term for <a tilde(a)>
+    lhs_wtildea: 1D numpy array, directly computed <w tilde(a)>
+    w_aw_term_wtildea: 1D numpy array, <w><aw> term for <w tilde(a)>
+    a_ww_term_wtildea: 1D numpy array, <a><ww> term for <w tilde(a)>
+    waw_term_wtildea: 1D numpy array, <waw> term for <w tilde(a)>
+    '''
+
+    #get one point functions
+    alm_00 = hp.map2alm(map_)[0]
+    wlm_00 = hp.map2alm(mask)[0]
+
     #get auto- and cross-spectra for map and mask
-    Cl_aa = hp.alm2cl(alm, lmax_out=inp.ellmax)
-    Cl_ww = hp.alm2cl(wlm, lmax_out=inp.ellmax)
-    Cl_aw = hp.anafast(map_, mask, lmax=inp.ellmax)
+    # Cl_aa = hp.anafast(map_-map_avg, lmax=inp.ellmax)
+    # Cl_ww = hp.anafast(mask-mask_avg, lmax=inp.ellmax)
+    Cl_aw = hp.anafast(map_-map_avg, mask-mask_avg, lmax=inp.ellmax)
+    Cl_aa = hp.anafast(map_, lmax=inp.ellmax)
+    Cl_ww = hp.anafast(mask, lmax=inp.ellmax)
+    # Cl_aw = hp.anafast(map_, mask, lmax=inp.ellmax)
 
     #load 3j symbols and set up arrays
     l2 = np.arange(inp.ellmax+1)
@@ -68,18 +94,18 @@ def one_sim(inp, sim):
     
     #compare <a tilde(a)> to representation in terms of bispectrum
     print(f'Starting bispectrum aaw calculation sim {sim}', flush=True)
-    bispectrum_aaw = Bispectrum(inp, map_-np.mean(map_), map_-np.mean(map_), mask-np.mean(mask), equal12=True)
+    bispectrum_aaw = Bispectrum(inp, map_-map_avg, map_-map_avg, mask-mask_avg, equal12=True)
     lhs_atildea = hp.anafast(map_*mask, map_, lmax=inp.ellmax)
     aaw_term_atildea = float(1/(4*np.pi))*np.einsum('a,b,lab,lab,lab->l',2*l2+1,2*l3+1,wigner,wigner,bispectrum_aaw,optimize=True)
-    w_aa_term_atildea = np.real(wlm[0])/np.sqrt(4*np.pi)*Cl_aa
-    a_aw_term_atildea = np.real(alm[0])/np.sqrt(4*np.pi)*Cl_aw
+    w_aa_term_atildea = np.real(wlm_00)/np.sqrt(4*np.pi)*Cl_aa
+    a_aw_term_atildea = np.real(alm_00)/np.sqrt(4*np.pi)*Cl_aw
 
     #compare <w tilde(a)> to representation in terms of Claw and w00
     print(f'Starting bispectrum waw calculation sim {sim}', flush=True)
-    bispectrum_waw = Bispectrum(inp,mask-np.mean(mask),map_-np.mean(map_),mask-np.mean(mask),equal13=True)
+    bispectrum_waw = Bispectrum(inp,mask-mask_avg,map_-map_avg,mask-mask_avg,equal13=True)
     lhs_wtildea = hp.anafast(map_*mask, mask, lmax=inp.ellmax)
-    w_aw_term_wtildea = float(1/np.sqrt(4*np.pi))*np.real(wlm[0])*Cl_aw
-    a_ww_term_wtildea = float(1/np.sqrt(4*np.pi))*np.real(alm[0])*Cl_ww
+    w_aw_term_wtildea = float(1/np.sqrt(4*np.pi))*np.real(wlm_00)*Cl_aw
+    a_ww_term_wtildea = float(1/np.sqrt(4*np.pi))*np.real(alm_00)*Cl_ww
     waw_term_wtildea = 1/(4*np.pi)*np.einsum('a,b,lab,lab,lab->l',2*l2+1,2*l3+1,wigner,wigner,bispectrum_waw)
     
     return lhs_atildea, w_aa_term_atildea, a_aw_term_atildea, aaw_term_atildea, lhs_wtildea, w_aw_term_wtildea, a_ww_term_wtildea, waw_term_wtildea
@@ -107,9 +133,22 @@ if __name__ == '__main__':
     else:
         inp.wigner3j = compute_3j(inp.ellmax)
 
-    #do ensemble averaging
+    #get all maps and masks
     pool = mp.Pool(min(inp.nsims, 16))
-    results = pool.starmap(one_sim, [(inp, sim) for sim in range(inp.nsims)])
+    results = pool.starmap(get_one_map_and_mask, [(inp, sim) for sim in range(inp.nsims)])
+    pool.close()
+    results = np.array(results)
+    maps = results[:,0,:]
+    masks = results[:,1,:]
+    map_avg = np.mean(maps)
+    mask_avg = np.mean(masks)
+    print('map_avg: ', map_avg, flush=True)
+    print('mask_avg: ', mask_avg, flush=True)
+    print('np.std(masks): ', np.std(np.array([np.mean(mask) for mask in masks])))
+
+    #do ensemble averaging for terms in reMASTERed result
+    pool = mp.Pool(min(inp.nsims, 16))
+    results = pool.starmap(one_sim, [(inp, sim, maps[sim], masks[sim], map_avg, mask_avg) for sim in range(inp.nsims)])
     pool.close()
     lhs_atildea = np.mean(np.array([res[0] for res in results]), axis=0)
     w_aa_term_atildea = np.mean(np.array([res[1] for res in results]), axis=0)

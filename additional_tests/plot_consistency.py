@@ -3,7 +3,7 @@ import string
 import healpy as hp
 import numpy as np
 
-def plot_consistency(inp, data, base_dir, start=2, logx=True, logy=False):
+def plot_consistency(inp, data, base_dir, start=0, logx=True, logy=False):
     
     '''
     PARAMETERS
@@ -30,7 +30,7 @@ def plot_consistency(inp, data, base_dir, start=2, logx=True, logy=False):
     rhs_atildea = w_aa_term_atildea + aaw_term_atildea
     plt.plot(ells[start:], 10**12*w_aa_term_atildea[start:], label=r'$\langle w \rangle \langle aa \rangle$ term', color='c')
     plt.plot(ells[start:], 10**12*a_aw_term_atildea[start:], label=r'$\langle a \rangle \langle aw \rangle$ term')
-    plt.plot(ells[start:], 10**12*aaw_term_atildea[start:], label=r'$\langle aaw \rangle$ term', color='r')
+    plt.plot(ells[start:], 10**12*aaw_term_atildea[start:], label=r'$\langle aaw \rangle_c$ term', color='r')
     plt.plot(ells[start:], 10**12*lhs_atildea[start:], label='Directly Computed', color='g')
     plt.plot(ells[start:], 10**12*rhs_atildea[start:], label='reMASTERed', linestyle='dotted', color='m')
     plt.legend(fontsize=12)
@@ -47,7 +47,7 @@ def plot_consistency(inp, data, base_dir, start=2, logx=True, logy=False):
     rhs_wtildea = w_aw_term_wtildea + waw_term_wtildea
     plt.plot(ells[start:], 10**6*w_aw_term_wtildea[start:], label=r'$\langle w \rangle \langle aw \rangle$ term')
     plt.plot(ells[start:], 10**6*a_ww_term_wtildea[start:], label=r'$\langle a \rangle \langle ww \rangle$ term', color='cyan')
-    plt.plot(ells[start:], 10**6*waw_term_wtildea[start:], label=r'$\langle waw \rangle$ term', color='mediumpurple')
+    plt.plot(ells[start:], 10**6*waw_term_wtildea[start:], label=r'$\langle waw \rangle_c$ term', color='mediumpurple')
     plt.plot(ells[start:], 10**6*lhs_wtildea[start:], label='Directly Computed', color='g')
     plt.plot(ells[start:], 10**6*rhs_wtildea[start:], label='ReMASTERed', color='m', linestyle='dotted')
     plt.legend(fontsize=12)
