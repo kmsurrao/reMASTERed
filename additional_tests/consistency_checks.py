@@ -80,12 +80,9 @@ def one_sim(inp, sim, map_, mask, map_avg, mask_avg):
     wlm_00 = hp.map2alm(mask)[0]
 
     #get auto- and cross-spectra for map and mask
-    # Cl_aa = hp.anafast(map_-map_avg, lmax=inp.ellmax)
-    # Cl_ww = hp.anafast(mask-mask_avg, lmax=inp.ellmax)
-    Cl_aw = hp.anafast(map_-map_avg, mask-mask_avg, lmax=inp.ellmax)
     Cl_aa = hp.anafast(map_, lmax=inp.ellmax)
     Cl_ww = hp.anafast(mask, lmax=inp.ellmax)
-    # Cl_aw = hp.anafast(map_, mask, lmax=inp.ellmax)
+    Cl_aw = hp.anafast(map_-np.mean(map_), mask-np.mean(mask), lmax=inp.ellmax)
 
     #load 3j symbols and set up arrays
     l2 = np.arange(inp.ellmax+1)
@@ -134,7 +131,7 @@ if __name__ == '__main__':
         inp.wigner3j = compute_3j(inp.ellmax)
 
     #get all maps and masks
-    pool = mp.Pool(min(inp.nsims, 16))
+    pool = mp.Pool(min(inp.nsims, 8))
     results = pool.starmap(get_one_map_and_mask, [(inp, sim) for sim in range(inp.nsims)])
     pool.close()
     results = np.array(results)
@@ -142,12 +139,9 @@ if __name__ == '__main__':
     masks = results[:,1,:]
     map_avg = np.mean(maps)
     mask_avg = np.mean(masks)
-    print('map_avg: ', map_avg, flush=True)
-    print('mask_avg: ', mask_avg, flush=True)
-    print('np.std(masks): ', np.std(np.array([np.mean(mask) for mask in masks])))
 
     #do ensemble averaging for terms in reMASTERed result
-    pool = mp.Pool(min(inp.nsims, 16))
+    pool = mp.Pool(min(inp.nsims, 8))
     results = pool.starmap(one_sim, [(inp, sim, maps[sim], masks[sim], map_avg, mask_avg) for sim in range(inp.nsims)])
     pool.close()
     lhs_atildea = np.mean(np.array([res[0] for res in results]), axis=0)
