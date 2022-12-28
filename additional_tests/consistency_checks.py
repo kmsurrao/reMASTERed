@@ -82,7 +82,7 @@ def one_sim(inp, sim, map_, mask, map_avg, mask_avg):
     #get auto- and cross-spectra for map and mask
     Cl_aa = hp.anafast(map_, lmax=inp.ellmax)
     Cl_ww = hp.anafast(mask, lmax=inp.ellmax)
-    Cl_aw = hp.anafast(map_-np.mean(map_), mask-np.mean(mask), lmax=inp.ellmax)
+    Cl_aw = hp.anafast(map_-map_avg, mask-mask_avg, lmax=inp.ellmax)
 
     #load 3j symbols and set up arrays
     l2 = np.arange(inp.ellmax+1)

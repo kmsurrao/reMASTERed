@@ -3,31 +3,6 @@
 import healpy as hp
 import numpy as np
 
-def compute_Cl(inp, lmax, data1, data2, equal12=False):
-    """
-    Compute the power spectrum up to some l-max
-
-    PARAMETERS
-    inp: Info() object, contains information about input parameters
-    lmax: int, maximum ell for which to calculate power spectrum
-    data1: 1D numpy array, first map input to power spectrum
-    data2: 1D numpy array, second map input to power spectrum
-    equal12: Bool, whether data1==data2
-
-    RETURNS
-    Cl: list, power spectrum of data1 and data2 up through lmax
-    """
-    Cl = hp.anafast(data1, data2, lmax=lmax)
-    # lmax_data = 3*inp.nside-1
-    # l_arr,m_arr = hp.Alm.getlm(lmax_data)
-    # data1_lm = hp.map2alm(data1)
-    # if equal12:
-    #     data2_lm = data1_lm
-    # else:
-    #     data2_lm = hp.map2alm(data2)
-    # Cl_summand = (1.+(m_arr>0))*data1_lm*data2_lm.conj()/(2.*l_arr+1.)
-    # Cl = [np.sum(Cl_summand*(l_arr==l)).real for l in range(lmax+1)]
-    return Cl
 
 def Tl_numerator(inp, lmax, data1, data2, data3, data4,
                  Cl12_th, Cl13_th, Cl14_th, Cl23_th, Cl24_th, Cl34_th,
@@ -131,12 +106,12 @@ def Tl_numerator(inp, lmax, data1, data2, data3, data4,
     if verb: print("Computing two-field and zero-field terms")
     
     # Compute empirical power spectra
-    Cl12 = compute_Cl(inp, lmax, data1, data2, equal12=equal12)
-    Cl13 = compute_Cl(inp, lmax, data1, data3, equal12=equal13)
-    Cl14 = compute_Cl(inp, lmax, data1, data4, equal12=equal14)
-    Cl23 = compute_Cl(inp, lmax, data2, data3, equal12=equal23)
-    Cl24 = compute_Cl(inp, lmax, data2, data4, equal12=equal24)
-    Cl34 = compute_Cl(inp, lmax, data3, data4, equal12=equal34)
+    Cl12 = hp.anafast(data1, data2, lmax=inp.ellmax)
+    Cl13 = hp.anafast(data1, data3, lmax=inp.ellmax)
+    Cl14 = hp.anafast(data1, data4, lmax=inp.ellmax)
+    Cl23 = hp.anafast(data2, data3, lmax=inp.ellmax)
+    Cl24 = hp.anafast(data2, data4, lmax=inp.ellmax)
+    Cl34 = hp.anafast(data3, data4, lmax=inp.ellmax)
     
     # Iterate over bins
     for l1 in range(lmin,lmax+1):
@@ -184,9 +159,9 @@ def rho(inp, a_map, w_map, Cl_aw, Cl_aa, Cl_ww):
     inp: Info() object, contains information about input parameters
     a_map: 1D numpy array, map of signal
     w_map: 1D numpy array, map of mask
-    Cl_aw: 1D numpy array, cross-spectrum of the map and mask
-    Cl_aa: 1D numpy array, auto-spectrum of the map
-    Cl_ww: 1D numpy array, auto-spectrum of the mask 
+    Cl_aw: 1D numpy array, cross-spectrum of the map and mask with averages subtracted
+    Cl_aa: 1D numpy array, auto-spectrum of the map with average subtracted
+    Cl_ww: 1D numpy array, auto-spectrum of the mask with average subtracted
 
     RETURNS
     tl_out: 5D numpy array, indexed as tl_out[l1,l2,l3,l4,L]

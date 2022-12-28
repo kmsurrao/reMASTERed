@@ -13,52 +13,72 @@ from test_remastered import *
 from plot_mask import *
 from wigner3j import *
 
-
-def one_sim(inp, sim):
+def get_one_map_and_mask(inp, sim):
     '''
     PARAMETERS
     inp: Info object, contains input specifications
     sim: int, simulation number
 
     RETURNS
-    master_lhs: 1D numpy array, directly computed power spectrum of masked map
-    wlm[0]: float, w_{00} for the mask
-    alm[0]: float, a_{00} for the map
-    Cl_aa: 1D numpy array, auto-spectrum of the map
-    Cl_ww: 1D numpy array, auto-spectrum of the mask
-    Cl_aw: 1D numpy array, cross-spectrum of the map and mask 
-    bispectrum_aaw: 3D numpy array indexed as bispectrum_aaw[l1,l2,l3], bispectrum consisting of two factors of map and one factor of mask 
-    bispectrum_waw: 3D numpy array indexed as bispectrum_waw[l1,l2,l3], bispectrum consisting of two factors of mask and one factor of map  
-    Rho: 5D numpy array indexed as Rho[l1,l2,l3,l4,L], estimator for unnormalized trispectrum
+    map_: 1D numpy array, contains simulated map
+    mask: 1D numpy array, contains threshold mask
     '''
 
     np.random.seed(sim)
 
     #get simulated map
+    lmax_data = 3*inp.nside-1
     map_ = hp.read_map(inp.map_file) 
-    map_cl = hp.anafast(map_, lmax=inp.ellmax)
+    map_cl = hp.anafast(map_, lmax=lmax_data)
     map_ = hp.synfast(map_cl, nside=inp.nside)
 
     #create threshold mask for component map
-    print(f'Starting mask generation for sim {sim}', flush=True)
+    print(f'Starting mask generation sim {sim}', flush=True)
     mask = gen_mask(inp, map_)
 
     #get alm and wlm for map and mask, respectively 
     alm = hp.map2alm(map_)
     wlm = hp.map2alm(mask)
-
+    
     #zero out modes above ellmax
-    lmax_data = 3*inp.nside-1
     l_arr,m_arr = hp.Alm.getlm(lmax_data)
     alm = alm*(l_arr<=inp.ellmax)
     wlm = wlm*(l_arr<=inp.ellmax)
     map_ = hp.alm2map(alm, nside=inp.nside)
     mask = hp.alm2map(wlm, nside=inp.nside)
 
+    return map_, mask
+
+def one_sim(inp, sim, map_, mask, map_avg, mask_avg):
+    '''
+    PARAMETERS
+    inp: Info object, contains input specifications
+    sim: int, simulation number
+    map_: 1D numpy array, contains simulated map
+    mask: 1D numpy array, contains threshold mask
+    map_avg: float, average pixel value over all map realizations
+    mask_avg: float, average pixel value over all mask realizations
+
+    RETURNS
+    master_lhs: 1D numpy array, directly computed power spectrum of masked map
+    wlm_00: float, w_{00} for the mask
+    alm_00: float, a_{00} for the map
+    Cl_aa: 1D numpy array, auto-spectrum of the map
+    Cl_ww: 1D numpy array, auto-spectrum of the mask
+    Cl_aw: 1D numpy array, cross-spectrum of the map and mask, with mean removed from each 
+    bispectrum_aaw: 3D numpy array indexed as bispectrum_aaw[l1,l2,l3], bispectrum consisting of two factors of map and one factor of mask 
+    bispectrum_waw: 3D numpy array indexed as bispectrum_waw[l1,l2,l3], bispectrum consisting of two factors of mask and one factor of map  
+    Rho: 5D numpy array indexed as Rho[l1,l2,l3,l4,L], estimator for unnormalized trispectrum
+    '''
+    
+    #get one point functions
+    alm_00 = hp.map2alm(map_)[0]
+    wlm_00 = hp.map2alm(mask)[0]
+
     #get auto- and cross-spectra for map and mask
     Cl_aa = hp.anafast(map_, lmax=inp.ellmax)
     Cl_ww = hp.anafast(mask, lmax=inp.ellmax)
-    Cl_aw = hp.anafast(map_, mask, lmax=inp.ellmax)
+    Cl_aw = hp.anafast(map_-map_avg, mask-mask_avg, lmax=inp.ellmax)
 
     #get list of map, mask, masked map, and correlation coefficient
     if sim==0:
@@ -80,20 +100,19 @@ def one_sim(inp, sim):
 
     #Compute bispectrum for aaw and waw
     print(f'Starting bispectrum calculation for sim {sim}', flush=True)
-    bispectrum_aaw = Bispectrum(inp, map_-np.mean(map_), map_-np.mean(map_), mask-np.mean(mask), equal12=True)
-    bispectrum_waw = Bispectrum(inp, mask-np.mean(mask), map_-np.mean(map_), mask-np.mean(mask), equal13=True)
+    bispectrum_aaw = Bispectrum(inp, map_-map_avg, map_-map_avg, mask-mask_avg, equal12=True)
+    bispectrum_waw = Bispectrum(inp, mask-mask_avg, map_-map_avg, mask-mask_avg, equal13=True)
 
     #Compute rho (unnormalized trispectrum)
     print(f'Starting rho calculation for sim {sim}', flush=True)
-    Cl_aa_rho = hp.anafast(map_-np.mean(map_), lmax=inp.ellmax)
-    Cl_ww_rho = hp.anafast(mask-np.mean(mask), lmax=inp.ellmax)
-    Cl_aw_rho = hp.anafast(map_-np.mean(map_), mask-np.mean(mask), lmax=inp.ellmax)
-    Rho = rho(inp, map_-np.mean(map_), mask-np.mean(mask), Cl_aw_rho, Cl_aa_rho, Cl_ww_rho)
+    Cl_aa_rho = hp.anafast(map_-map_avg, lmax=inp.ellmax)
+    Cl_ww_rho = hp.anafast(mask-mask_avg, lmax=inp.ellmax)
+    Rho = rho(inp, map_-map_avg, mask-mask_avg, Cl_aw, Cl_aa_rho, Cl_ww_rho)
 
     #get MASTER LHS (directly computed power spectrum of masked map)
     master_lhs = hp.anafast(map_*mask, lmax=inp.ellmax)
 
-    return master_lhs, wlm[0], alm[0], Cl_aa, Cl_ww, Cl_aw, bispectrum_aaw, bispectrum_waw, Rho 
+    return master_lhs, wlm_00, alm_00, Cl_aa, Cl_ww, Cl_aw, bispectrum_aaw, bispectrum_waw, Rho 
 
 
 if __name__ == '__main__': 
@@ -118,10 +137,19 @@ if __name__ == '__main__':
     else:
         inp.wigner3j = compute_3j(inp.ellmax)
 
+    #get all maps and masks
+    pool = mp.Pool(min(inp.nsims, 16))
+    results = pool.starmap(get_one_map_and_mask, [(inp, sim) for sim in range(inp.nsims)])
+    pool.close()
+    results = np.array(results)
+    maps = results[:,0,:]
+    masks = results[:,1,:]
+    map_avg = np.mean(maps)
+    mask_avg = np.mean(masks)
 
     #Run inp.nsims simulations
     pool = mp.Pool(min(inp.nsims, 16))
-    results = pool.starmap(one_sim, [(inp, sim) for sim in range(inp.nsims)])
+    results = pool.starmap(one_sim, [(inp, sim, maps[sim], masks[sim], map_avg, mask_avg) for sim in range(inp.nsims)])
     pool.close()
     master_lhs = np.mean(np.array([res[0] for res in results]), axis=0)
     wlm_00 = np.mean(np.array([res[1] for res in results]), axis=0)
