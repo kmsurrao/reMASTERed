@@ -76,9 +76,12 @@ def one_sim(inp, sim, map_, mask, map_avg, mask_avg):
     wlm_00 = hp.map2alm(mask)[0]
 
     #get auto- and cross-spectra for map and mask
-    Cl_aa = hp.anafast(map_, lmax=inp.ellmax)
-    Cl_ww = hp.anafast(mask, lmax=inp.ellmax)
-    Cl_aw = hp.anafast(map_-map_avg, mask-mask_avg, lmax=inp.ellmax)
+    Cl_aa = hp.anafast(map_, lmax=inp.ell_sum_max)
+    Cl_ww = hp.anafast(mask, lmax=inp.ell_sum_max)
+    Cl_aw = hp.anafast(map_, mask, lmax=inp.ell_sum_max)
+    Cl_aa_mean_rem = hp.anafast(map_-map_avg, lmax=inp.ell_sum_max)
+    Cl_ww_mean_rem = hp.anafast(mask-mask_avg, lmax=inp.ell_sum_max)
+    Cl_aw_mean_rem = hp.anafast(map_-map_avg, mask-mask_avg, lmax=inp.ell_sum_max)
 
     #get list of map, mask, masked map, and correlation coefficient
     if sim==0:
@@ -90,7 +93,7 @@ def one_sim(inp, sim, map_, mask, map_avg, mask_avg):
                 base_dir = f'{inp.comp}_cut{inp.cut}_ellmax{inp.ellmax}_nsims{inp.nsims}_nside{inp.nside}_nsideformasking{inp.nside_for_masking}'
             if not os.path.isdir(base_dir):
                 subprocess.call(f'mkdir {base_dir}', shell=True, env=my_env)
-            corr = Cl_aw/np.sqrt(Cl_aa*Cl_ww)
+            corr = Cl_aw[:inp.ellmax+1]/np.sqrt(Cl_aa[:inp.ellmax+1]*Cl_ww[:inp.ellmax+1])
             data.append(corr)
             if inp.save_files:
                 pickle.dump(data, open(f'{base_dir}/mask_data.p', 'wb'))
@@ -105,9 +108,7 @@ def one_sim(inp, sim, map_, mask, map_avg, mask_avg):
 
     #Compute rho (unnormalized trispectrum)
     print(f'Starting rho calculation for sim {sim}', flush=True)
-    Cl_aa_rho = hp.anafast(map_-map_avg, lmax=inp.ellmax)
-    Cl_ww_rho = hp.anafast(mask-mask_avg, lmax=inp.ellmax)
-    Rho = rho(inp, map_-map_avg, mask-mask_avg, Cl_aw, Cl_aa_rho, Cl_ww_rho)
+    Rho = rho(inp, map_-map_avg, mask-mask_avg, Cl_aw_mean_rem, Cl_aa_mean_rem, Cl_ww_mean_rem)
 
     #get MASTER LHS (directly computed power spectrum of masked map)
     master_lhs = hp.anafast(map_*mask, lmax=inp.ellmax)
@@ -133,12 +134,12 @@ if __name__ == '__main__':
 
     #get wigner 3j symbols
     if inp.wigner_file != '':
-        inp.wigner3j = pickle.load(open(inp.wigner_file, 'rb'))[:inp.ellmax+1, :inp.ellmax+1, :inp.ellmax+1]
+        inp.wigner3j = pickle.load(open(inp.wigner_file, 'rb'))[:inp.ell_sum_max+1, :inp.ell_sum_max+1, :inp.ell_sum_max+1]
     else:
-        inp.wigner3j = compute_3j(inp.ellmax)
+        inp.wigner3j = compute_3j(inp.ell_sum_max)
 
     #get all maps and masks
-    pool = mp.Pool(min(inp.nsims, 16))
+    pool = mp.Pool(min(inp.nsims, 32))
     results = pool.starmap(get_one_map_and_mask, [(inp, sim) for sim in range(inp.nsims)])
     pool.close()
     results = np.array(results)
@@ -146,10 +147,17 @@ if __name__ == '__main__':
     masks = results[:,1,:]
     map_avg = np.mean(maps)
     mask_avg = np.mean(masks)
+    good_sims = []
+    for sim in range(inp.nsims):
+        map_, mask = maps[sim], masks[sim]
+        if not (np.abs(np.mean(map_-map_avg))>0.1*map_.std() or np.abs(np.mean(mask-mask_avg))>0.1*mask.std() ):
+            good_sims.append(sim)
+    print('good_sims: ', good_sims, flush=True)
+    
 
     #Run inp.nsims simulations
-    pool = mp.Pool(min(inp.nsims, 16))
-    results = pool.starmap(one_sim, [(inp, sim, maps[sim], masks[sim], map_avg, mask_avg) for sim in range(inp.nsims)])
+    pool = mp.Pool(min(len(good_sims), 32))
+    results = pool.starmap(one_sim, [(inp, sim, maps[sim], masks[sim], map_avg, mask_avg) for sim in good_sims])
     pool.close()
     master_lhs = np.mean(np.array([res[0] for res in results]), axis=0)
     wlm_00 = np.mean(np.array([res[1] for res in results]), axis=0)
@@ -160,8 +168,8 @@ if __name__ == '__main__':
     bispectrum_aaw = np.mean(np.array([res[6] for res in results]), axis=0)
     bispectrum_waw = np.mean(np.array([res[7] for res in results]), axis=0)
     Rho = np.mean(np.array([res[8] for res in results]), axis=0)
-    pickle.dump(Rho, open(f'rho/rho_{inp.comp}_ellmax{inp.ellmax}.p', 'wb')) #remove
-    # Rho = pickle.load(open(f'rho/rho_{inp.comp}_ellmax{inp.ellmax}.p', 'rb')) #remove
+    pickle.dump(Rho, open(f'rho/rho_{inp.comp}_ellmax{inp.ellmax}_{inp.nsims}sims.p', 'wb')) #remove
+    # Rho = pickle.load(open(f'rho/rho_{inp.comp}_ellmax{inp.ellmax}_{inp.nsims}sims.p', 'rb')) #remove
 
     #Get all terms of reMASTERed equation
     print('Starting reMASTERed comparison', flush=True)

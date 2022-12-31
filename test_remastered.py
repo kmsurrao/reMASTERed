@@ -13,7 +13,7 @@ def compare_master(inp, master_lhs, wlm_00, alm_00, Cl_aa, Cl_ww, Cl_aw, bispect
     alm_00: float, a_{00} for the map
     Cl_aa: 1D numpy array, auto-spectrum of the map
     Cl_ww: 1D numpy array, auto-spectrum of the mask
-    Cl_aw: 1D numpy array, cross-spectrum of the map and mask 
+    Cl_aw: 1D numpy array, cross-spectrum of the map and mask
     bispectrum_aaw: 3D numpy array indexed as bispectrum_aaw[l1,l2,l3], bispectrum consisting of two factors of map and one factor of mask 
     bispectrum_waw: 3D numpy array indexed as bispectrum_waw[l1,l2,l3], bispectrum consisting of two factors of mask and one factor of map 
     Rho: 5D numpy array indexed as Rho[l1,l2,l3,l4,L], estimator for unnormalized trispectrum
@@ -37,12 +37,12 @@ def compare_master(inp, master_lhs, wlm_00, alm_00, Cl_aa, Cl_ww, Cl_aw, bispect
 
     #calculate spectra of masked map from MASTER approach
     l1 = np.arange(inp.ellmax+1)
-    l2 = np.arange(inp.ellmax+1)
-    l3 = np.arange(inp.ellmax+1)
-    aa_ww_term = float(1/(4*np.pi))*np.einsum('a,b,lab,lab,a,b->l',2*l2+1,2*l3+1,inp.wigner3j,inp.wigner3j,Cl_aa,Cl_ww,optimize=True)
-    aw_aw_term = float(1/(4*np.pi))*np.einsum('a,b,lab,lab,a,b->l',2*l2+1,2*l3+1,inp.wigner3j,inp.wigner3j,Cl_aw,Cl_aw,optimize=True)
-    w_aaw_term = float(1/(4*np.pi))*1/np.sqrt(np.pi)*wlm_00*np.einsum('a,b,lab,lab,lab->l',2*l2+1,2*l3+1,inp.wigner3j,inp.wigner3j,bispectrum_aaw,optimize=True)
-    a_waw_term = float(1/(4*np.pi))*1/np.sqrt(np.pi)*alm_00*np.einsum('a,b,lab,lab,lab->l',2*l2+1,2*l3+1,inp.wigner3j,inp.wigner3j,bispectrum_waw,optimize=True)
+    l2 = np.arange(inp.ell_sum_max+1)
+    l3 = np.arange(inp.ell_sum_max+1)
+    aa_ww_term = float(1/(4*np.pi))*np.einsum('a,b,lab,lab,a,b->l',2*l2+1,2*l3+1,inp.wigner3j[:inp.ellmax+1,:,:],inp.wigner3j[:inp.ellmax+1,:,:],Cl_aa,Cl_ww,optimize=True)
+    aw_aw_term = float(1/(4*np.pi))*np.einsum('a,b,lab,lab,a,b->l',2*l2+1,2*l3+1,inp.wigner3j[:inp.ellmax+1,:,:],inp.wigner3j[:inp.ellmax+1,:,:],Cl_aw,Cl_aw,optimize=True)
+    w_aaw_term = float(1/(4*np.pi))*1/np.sqrt(np.pi)*wlm_00*np.einsum('a,b,lab,lab,lab->l',2*l2+1,2*l3+1,inp.wigner3j[:inp.ellmax+1,:,:],inp.wigner3j[:inp.ellmax+1,:,:],bispectrum_aaw,optimize=True)
+    a_waw_term = float(1/(4*np.pi))*1/np.sqrt(np.pi)*alm_00*np.einsum('a,b,lab,lab,lab->l',2*l2+1,2*l3+1,inp.wigner3j[:inp.ellmax+1,:,:],inp.wigner3j[:inp.ellmax+1,:,:],bispectrum_waw,optimize=True)
     aaww_term = np.einsum('l,acbdl->l', 1/(2*l1+1), Rho)
     remastered = (aa_ww_term + aw_aw_term + w_aaw_term + a_waw_term + aaww_term)
     

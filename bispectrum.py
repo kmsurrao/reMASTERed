@@ -16,12 +16,13 @@ def Bl_norm(inp):
     
     # Compute normalization matrix
     lmax = inp.ellmax
-    norm = np.zeros((lmax+1,lmax+1,lmax+1))
+    lmax_sum = inp.ell_sum_max
+    norm = np.zeros((lmax+1,lmax_sum+1,lmax_sum+1))
 
     # Iterate over bins
     for l1 in range(lmax+1):
-        for l2 in range(lmax+1):
-            for l3 in range(abs(l1-l2),min(l1+l2+1,lmax+1)):
+        for l2 in range(lmax_sum+1):
+            for l3 in range(abs(l1-l2),min(l1+l2+1,lmax_sum+1)):
                 if (-1)**(l1+l2+l3)==-1: continue # 3j = 0 here
                 norm[l1,l2,l3] += inp.wigner3j[l1,l2,l3]**2*(2.*l1+1.)*(2.*l2+1.)*(2.*l3+1.)/(4.*np.pi)
 
@@ -43,10 +44,11 @@ def Bl_numerator(inp, data1, data2, data3, equal12=False,equal23=False,equal13=F
     b_num_ideal: 3D numpy array, indexed as b_num_ideal[l1,l2,l3]
     """
     
-    if np.abs(data1.mean())>0.1*data1.std() or np.abs(data2.mean())>0.1*data2.std() or np.abs(data3.mean())>0.1*data3.std():
-        raise Exception("Need mean-zero inputs!")
+    # if np.abs(data1.mean())>0.1*data1.std() or np.abs(data2.mean())>0.1*data2.std() or np.abs(data3.mean())>0.1*data3.std():
+    #     raise Exception("Need mean-zero inputs!")
     
     lmax = inp.ellmax
+    lmax_sum = inp.ell_sum_max
     lmax_data = 3*inp.nside-1
     Nside = inp.nside
     l_arr,m_arr = hp.Alm.getlm(lmax_data)
@@ -64,27 +66,29 @@ def Bl_numerator(inp, data1, data2, data3, equal12=False,equal23=False,equal13=F
     
     # Map 2
     if equal12:
-        I2_map = I1_map
+        data2_lm = hp.map2alm(data2)
+        I2_map = I1_map + [hp.alm2map((l_arr==l)*data2_lm,Nside) for l in range(lmax+1, lmax_sum+1)]
     else:
         data2_lm = hp.map2alm(data2)
-        I2_map = [hp.alm2map((l_arr==l)*data2_lm,Nside) for l in range(lmax+1)]
+        I2_map = [hp.alm2map((l_arr==l)*data2_lm,Nside) for l in range(lmax_sum+1)]
 
     # Map 3
     if equal13:
-        I3_map = I1_map
+        data3_lm = hp.map2alm(data3)
+        I3_map = I1_map + [hp.alm2map((l_arr==l)*data3_lm,Nside) for l in range(lmax+1, lmax_sum+1)]
     elif equal23:
         I3_map = I2_map
     else:
         data3_lm = hp.map2alm(data3)
-        I3_map = [hp.alm2map((l_arr==l)*data3_lm,Nside) for l in range(lmax+1)]
+        I3_map = [hp.alm2map((l_arr==l)*data3_lm,Nside) for l in range(lmax_sum+1)]
     
     # Combine to find numerator
-    b_num_ideal = np.zeros((lmax+1,lmax+1,lmax+1))
+    b_num_ideal = np.zeros((lmax+1,lmax_sum+1,lmax_sum+1))
 
     # Iterate over bins
     for l1 in range(lmax+1):
-        for l2 in range(lmax+1):
-            for l3 in range(abs(l1-l2),min(l1+l2+1,lmax+1)):
+        for l2 in range(lmax_sum+1):
+            for l3 in range(abs(l1-l2),min(l1+l2+1,lmax_sum+1)):
 
                 # skip odd modes which vanish on average
                 if (-1)**(l1+l2+l3)==-1: continue

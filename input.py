@@ -25,6 +25,8 @@ class Info(object):
             assert type(self.nsims) is int and self.nsims>=0, "nsims"
             self.ellmax = p['ellmax']
             assert type(self.ellmax) is int and self.ellmax>=0, "ellmax"
+            self.ell_sum_max = p['ell_sum_max']
+            assert type(self.ell_sum_max) is int and self.ell_sum_max>=0, "ell_sum_max"
             self.nside = p['nside']
             assert type(self.nside) is int and (self.nside & (self.nside-1) == 0) and self.nside != 0, "nside"
             assert self.ellmax <= 3*self.nside-1, "ellmax > 3*nside-1"
