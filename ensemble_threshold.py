@@ -139,7 +139,7 @@ if __name__ == '__main__':
         inp.wigner3j = compute_3j(inp.ell_sum_max)
 
     #get all maps and masks
-    pool = mp.Pool(min(inp.nsims, 32))
+    pool = mp.Pool(min(inp.nsims, 16))
     results = pool.starmap(get_one_map_and_mask, [(inp, sim) for sim in range(inp.nsims)])
     pool.close()
     results = np.array(results)
@@ -147,17 +147,10 @@ if __name__ == '__main__':
     masks = results[:,1,:]
     map_avg = np.mean(maps)
     mask_avg = np.mean(masks)
-    good_sims = []
-    for sim in range(inp.nsims):
-        map_, mask = maps[sim], masks[sim]
-        if not (np.abs(np.mean(map_-map_avg))>0.1*map_.std() or np.abs(np.mean(mask-mask_avg))>0.1*mask.std() ):
-            good_sims.append(sim)
-    print('good_sims: ', good_sims, flush=True)
     
-
     #Run inp.nsims simulations
-    pool = mp.Pool(min(len(good_sims), 32))
-    results = pool.starmap(one_sim, [(inp, sim, maps[sim], masks[sim], map_avg, mask_avg) for sim in good_sims])
+    pool = mp.Pool(min(inp.nsims, 16))
+    results = pool.starmap(one_sim, [(inp, sim, maps[sim], masks[sim], map_avg, mask_avg) for sim in range(inp.nsims)])
     pool.close()
     master_lhs = np.mean(np.array([res[0] for res in results]), axis=0)
     wlm_00 = np.mean(np.array([res[1] for res in results]), axis=0)

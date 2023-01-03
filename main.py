@@ -25,41 +25,38 @@ inp = Info(input_file, mask_provided=True)
 # current environment, also environment in which to run subprocesses
 my_env = os.environ.copy()
 
+# base directory to save data and figures
+base_dir = inp.output_dir
+
 #get wigner 3j symbols
 if inp.wigner_file != '':
-    inp.wigner3j = pickle.load(open(inp.wigner_file, 'rb'))[:inp.ellmax+1, :inp.ellmax+1, :inp.ellmax+1]
+    inp.wigner3j = pickle.load(open(inp.wigner_file, 'rb'))[:inp.ell_sum_max+1, :inp.ell_sum_max+1, :inp.ell_sum_max+1]
 else:
-    inp.wigner3j = compute_3j(inp.ellmax)
+    inp.wigner3j = compute_3j(inp.ell_sum_max)
 
 #load map and mask
 map_ = hp.ud_grade(hp.read_map(inp.map_file), inp.nside)
 mask = hp.ud_grade(hp.read_map(inp.mask_file), inp.nside)
 
-#get alm and wlm for map and mask, respectively 
-alm = hp.map2alm(map_)
-wlm = hp.map2alm(mask)
-
-#zero out modes above ellmax
-lmax_data = 3*inp.nside-1
-l_arr,m_arr = hp.Alm.getlm(lmax_data)
-alm = alm*(l_arr<=inp.ellmax)
-wlm = wlm*(l_arr<=inp.ellmax)
-map_ = hp.alm2map(alm, nside=inp.nside)
-mask = hp.alm2map(wlm, nside=inp.nside)
+#get one point functions
+alm_00 = hp.map2alm(map_)[0]
+wlm_00 = hp.map2alm(mask)[0]
 
 #get auto- and cross-spectra for map and mask
-Cl_aa = hp.alm2cl(alm, lmax_out=inp.ellmax)
-Cl_ww = hp.alm2cl(wlm, lmax_out=inp.ellmax)
-Cl_aw = hp.anafast(map_, mask, lmax=inp.ellmax)
+Cl_aa = hp.anafast(map_, lmax=inp.ell_sum_max)
+Cl_ww = hp.anafast(mask, lmax=inp.ell_sum_max)
+Cl_aw = hp.anafast(map_, mask, lmax=inp.ell_sum_max)
+Cl_aa_mean_rem = hp.anafast(map_-np.mean(map_), lmax=inp.ell_sum_max)
+Cl_ww_mean_rem = hp.anafast(mask-np.mean(mask), lmax=inp.ell_sum_max)
+Cl_aw_mean_rem = hp.anafast(map_-np.mean(map_), mask-np.mean(mask), lmax=inp.ell_sum_max)
 
 
 #get list of map, mask, masked map, and correlation coefficient
 if inp.save_files or inp.plot:
     data = [map_, mask, map_*mask] #will contain map, mask, masked map, correlation coefficient
-    base_dir = inp.output_dir
     if not os.path.isdir(base_dir):
         subprocess.call(f'mkdir {base_dir}', shell=True, env=my_env)
-    corr = Cl_aw/np.sqrt(Cl_aa*Cl_ww)
+    corr = Cl_aw[:inp.ellmax+1]/np.sqrt(Cl_aa[:inp.ellmax+1]*Cl_ww[:inp.ellmax+1])
     data.append(corr)
     if inp.save_files:
         pickle.dump(data, open(f'{base_dir}/mask_data.p', 'wb'))
@@ -74,7 +71,7 @@ bispectrum_waw = Bispectrum(inp, mask-np.mean(mask), map_-np.mean(map_), mask-np
 
 #Compute rho (unnormalized trispectrum)
 print('Starting rho calculation', flush=True)
-Rho = rho(inp, map_-np.mean(map_), mask-np.mean(mask), Cl_aw, Cl_aa, Cl_ww)
+Rho = rho(inp, map_-np.mean(map_), mask-np.mean(mask), Cl_aw_mean_rem, Cl_aa_mean_rem, Cl_ww_mean_rem)
 # pickle.dump(Rho, open(f'rho/rho_isw_ellmax{inp.ellmax}.p', 'wb')) #remove
 # Rho = pickle.load(open(f'rho/rho_isw_ellmax{inp.ellmax}.p', 'rb')) #remove
 
@@ -83,6 +80,6 @@ master_lhs = hp.anafast(map_*mask, lmax=inp.ellmax)
 
 #Get all terms of reMASTERed equation
 print('Starting reMASTERed comparison', flush=True)
-compare_master(inp, master_lhs, wlm[0], alm[0], Cl_aa, Cl_ww, Cl_aw, bispectrum_aaw, bispectrum_waw, Rho, my_env, base_dir=base_dir)
+compare_master(inp, master_lhs, wlm_00, alm_00, Cl_aa, Cl_ww, Cl_aw, bispectrum_aaw, bispectrum_waw, Rho, my_env, base_dir=base_dir)
 
 print("--- %s seconds ---" % (time.time() - start_time), flush=True)
