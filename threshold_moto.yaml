@@ -1,4 +1,4 @@
-nsims: 16
+nsims: 16 #number of simulations to run
 ellmax: 30 #ellmax for power spectra
 ell_sum_max: 30 #maximum ell to loop over
 remove_high_ell_power: 1 #Set to nonzero value to remove power above ellmax in alm and wlm
