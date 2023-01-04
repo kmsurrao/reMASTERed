@@ -41,11 +41,12 @@ def get_one_map_and_mask(inp, sim):
     wlm = hp.map2alm(mask)
     
     #zero out modes above ellmax
-    l_arr,m_arr = hp.Alm.getlm(lmax_data)
-    alm = alm*(l_arr<=inp.ellmax)
-    wlm = wlm*(l_arr<=inp.ellmax)
-    map_ = hp.alm2map(alm, nside=inp.nside)
-    mask = hp.alm2map(wlm, nside=inp.nside)
+    if inp.remove_high_ell_power:
+        l_arr,m_arr = hp.Alm.getlm(lmax_data)
+        alm = alm*(l_arr<=inp.ellmax)
+        wlm = wlm*(l_arr<=inp.ellmax)
+        map_ = hp.alm2map(alm, nside=inp.nside)
+        mask = hp.alm2map(wlm, nside=inp.nside)
 
     return map_, mask
 
@@ -65,10 +66,10 @@ def one_sim(inp, sim, map_, mask, map_avg, mask_avg):
     alm_00: float, a_{00} for the map
     Cl_aa: 1D numpy array, auto-spectrum of the map
     Cl_ww: 1D numpy array, auto-spectrum of the mask
-    Cl_aw: 1D numpy array, cross-spectrum of the map and mask, with mean removed from each 
-    bispectrum_aaw: 3D numpy array indexed as bispectrum_aaw[l1,l2,l3], bispectrum consisting of two factors of map and one factor of mask 
-    bispectrum_waw: 3D numpy array indexed as bispectrum_waw[l1,l2,l3], bispectrum consisting of two factors of mask and one factor of map  
-    Rho: 5D numpy array indexed as Rho[l1,l2,l3,l4,L], estimator for unnormalized trispectrum
+    Cl_aw: 1D numpy array, cross-spectrum of the map and mask 
+    bispectrum_aaw: 3D numpy array indexed as bispectrum_aaw[l1,l2,l3], bispectrum consisting of two factors of map and one factor of mask (with means removed)
+    bispectrum_waw: 3D numpy array indexed as bispectrum_waw[l1,l2,l3], bispectrum consisting of two factors of mask and one factor of map (with means removed)
+    Rho: 5D numpy array indexed as Rho[l1,l2,l3,l4,L], estimator for unnormalized trispectrum (with means removed from map and mask)
     '''
     
     #get one point functions
@@ -161,7 +162,7 @@ if __name__ == '__main__':
     bispectrum_aaw = np.mean(np.array([res[6] for res in results]), axis=0)
     bispectrum_waw = np.mean(np.array([res[7] for res in results]), axis=0)
     Rho = np.mean(np.array([res[8] for res in results]), axis=0)
-    pickle.dump(Rho, open(f'rho/rho_{inp.comp}_ellmax{inp.ellmax}_{inp.nsims}sims.p', 'wb')) #remove
+    # pickle.dump(Rho, open(f'rho/rho_{inp.comp}_ellmax{inp.ellmax}_{inp.nsims}sims.p', 'wb')) #remove
     # Rho = pickle.load(open(f'rho/rho_{inp.comp}_ellmax{inp.ellmax}_{inp.nsims}sims.p', 'rb')) #remove
 
     #Get all terms of reMASTERed equation
