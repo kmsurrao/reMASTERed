@@ -119,11 +119,6 @@ def Tl_numerator(inp, lmax, lmax_sum, data1, data2, data3, data4,
         for l2 in range(lmin,lmax_sum+1):
             for l3 in range(lmin,lmax_sum+1):
                 for l4 in range(lmin,lmax_sum+1):
-                    
-                    # first permutation
-                    if (l1==l2) and (l3==l4):
-                        t2_num_ideal[l1,l2,l3,l4,0] += -(2*l1+1)*(2*l3+1)/(4.*np.pi)*(Cl12[l1]*Cl34_th[l3]+Cl12_th[l1]*Cl34[l3])
-                        t0_num_ideal[l1,l2,l3,l4,0] += (2*l1+1)*(2*l3+1)/(4.*np.pi)*(Cl12_th[l1]*Cl34_th[l3])
                         
                     # second permutation
                     if (l1==l3 and l2==l4):
@@ -168,8 +163,8 @@ def rho(inp, a_map, w_map, Cl_aw, Cl_aa, Cl_ww):
     tl_out: 5D numpy array, indexed as tl_out[l1,l2,l3,l4,L]
     '''
     tl_out = Tl_numerator(inp, inp.ellmax, inp.ell_sum_max, 
-                          a_map,a_map,w_map,w_map,
-                          Cl_aa,Cl_aw,Cl_aw,Cl_aw,Cl_aw,Cl_ww,
+                          a_map,w_map,a_map,w_map,
+                          Cl_aw,Cl_aa,Cl_aw,Cl_aw,Cl_ww,Cl_aw,
                           verb=True,
-                          equal12=True,equal34=True)
+                          equal13=True,equal24=True)
     return tl_out
