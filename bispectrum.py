@@ -44,9 +44,6 @@ def Bl_numerator(inp, data1, data2, data3, equal12=False,equal23=False,equal13=F
     b_num_ideal: 3D numpy array, indexed as b_num_ideal[l1,l2,l3]
     """
     
-    # if np.abs(data1.mean())>0.1*data1.std() or np.abs(data2.mean())>0.1*data2.std() or np.abs(data3.mean())>0.1*data3.std():
-    #     raise Exception("Need mean-zero inputs!")
-    
     lmax = inp.ellmax
     lmax_sum = inp.ell_sum_max
     lmax_data = 3*inp.nside-1

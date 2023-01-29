@@ -16,7 +16,7 @@ def compare_master(inp, master_lhs, wlm_00, alm_00, Cl_aa, Cl_ww, Cl_aw, bispect
     Cl_aw: 1D numpy array, cross-spectrum of the map and mask
     bispectrum_aaw: 3D numpy array indexed as bispectrum_aaw[l1,l2,l3], bispectrum consisting of two factors of map and one factor of mask 
     bispectrum_waw: 3D numpy array indexed as bispectrum_waw[l1,l2,l3], bispectrum consisting of two factors of mask and one factor of map 
-    Rho: 5D numpy array indexed as Rho[l1,l2,l3,l4,L], estimator for unnormalized trispectrum
+    Rho: 5D numpy array indexed as Rho[l2,l4,l3,l5,l1], estimator for unnormalized trispectrum
     env: dict, contains features of the current environment
     base_dir: str, directory to save plots and pickle files
 

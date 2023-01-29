@@ -7,7 +7,8 @@ import numpy as np
 def Tl_numerator(inp, lmax, lmax_sum, data1, data2, data3, data4,
                  Cl12_th, Cl13_th, Cl14_th, Cl23_th, Cl24_th, Cl34_th,
                  lmin=0, verb=False,
-                 equal12=False,equal13=False,equal14=False,equal23=False,equal24=False,equal34=False):
+                 equal12=False,equal13=False,equal14=False,equal23=False,equal24=False,equal34=False,
+                 remove_two_point=True):
     """
     Compute the numerator of the idealized trispectrum estimator. 
     Note that we weight according to *spin-zero* Gaunt symbols, which is different to Philcox (in prep.).
@@ -25,13 +26,11 @@ def Tl_numerator(inp, lmax, lmax_sum, data1, data2, data3, data4,
     lmin: int, minimum ell for which to calculate output
     verb: Bool, whether to print
     equal{i}{j}: Bool, whether data{i}==data{j}
+    remove_two_point: Bool, whether to subtract two-point disconnected pieces
 
     RETURNS
     t4_num_ideal+t2_num_ideal+t0_num_ideal: 5D numpy array, indexed with [l1,l2,l3,l4,L]
     """
-    
-    # if np.abs(data1.mean())>0.1*data1.std() or np.abs(data2.mean())>0.1*data2.std() or np.abs(data3.mean())>0.1*data3.std() or np.abs(data4.mean())>0.1*data4.std():
-    #     raise Exception("Need mean-zero inputs!")
 
     # Define 3j calculation
     lmax_data = 3*inp.nside-1
@@ -102,7 +101,10 @@ def Tl_numerator(inp, lmax, lmax_sum, data1, data2, data3, data4,
    
                         # Compute four-field term
                         t4_num_ideal[l1,l2,l3,l4,L] = np.sum(summand*(l_arr==L)*(1.+(m_arr>0))).real
-        
+    
+    if not remove_two_point:
+        return t4_num_ideal
+
     ## Compute two-field term
     if verb: print("Computing two-field and zero-field terms")
     
@@ -147,24 +149,25 @@ def Tl_numerator(inp, lmax, lmax_sum, data1, data2, data3, data4,
     return t4_num_ideal+t2_num_ideal+t0_num_ideal
 
 
-def rho(inp, a_map, w_map, Cl_aw, Cl_aa, Cl_ww):
+def rho(inp, a_map, w_map, Cl_aw, Cl_aa, Cl_ww, remove_two_point=True):
     '''
     Compute trispectrum without normalization
 
     PARAMETERS
     inp: Info() object, contains information about input parameters
-    a_map: 1D numpy array, map of signal
-    w_map: 1D numpy array, map of mask
+    a_map: 1D numpy array, map of signal with average subtracted
+    w_map: 1D numpy array, map of mask with average subtracted
     Cl_aw: 1D numpy array, cross-spectrum of the map and mask with averages subtracted
     Cl_aa: 1D numpy array, auto-spectrum of the map with average subtracted
     Cl_ww: 1D numpy array, auto-spectrum of the mask with average subtracted
+    remove_two_point: Bool, whether to subtract two-point disconnected pieces
 
     RETURNS
-    tl_out: 5D numpy array, indexed as tl_out[l1,l2,l3,l4,L]
+    tl_out: 5D numpy array, indexed as tl_out[l2,l4,l3,l5,l1]
     '''
     tl_out = Tl_numerator(inp, inp.ellmax, inp.ell_sum_max, 
                           a_map,w_map,a_map,w_map,
                           Cl_aw,Cl_aa,Cl_aw,Cl_aw,Cl_ww,Cl_aw,
-                          verb=True,
-                          equal13=True,equal24=True)
+                          verb=False, equal13=True, equal24=True, 
+                          remove_two_point=remove_two_point)
     return tl_out

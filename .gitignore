@@ -1,3 +1,4 @@
+*.DS_Store*
 *cori.yaml
 *rho/*
 extra/*
@@ -9,6 +10,7 @@ slurm-*.out
 masks/*
 bispectra/*
 *.png
+*.pdf
 *sbatch*
 *.p
 *.fits

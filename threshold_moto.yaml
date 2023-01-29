@@ -1,6 +1,6 @@
-nsims: 16 #number of simulations to run
-ellmax: 30 #ellmax for power spectra
-ell_sum_max: 30 #maximum ell to loop over
+nsims: 1 #number of simulations to run
+ellmax: 50 #ellmax for power spectra
+ell_sum_max: 50 #maximum ell to loop over
 remove_high_ell_power: 1 #Set to nonzero value to remove power above ellmax in alm and wlm
 nside: 128 #nside of maps, used in bi[tri]spectrum calculation
 nside_for_masking: 64 #nside for finding regions of map to threshold
@@ -10,7 +10,7 @@ aposcale: 2.5 #Apodization scale in degrees for NaMaster for mask
 cut_high: 1 #Set to nonzero value to mask values above cut
 cut_low: 0 #Set to nonzero value to mask values below cut
 
-map_file: 'isw.fits' #File for component map, assumed to be in Kelvin, for isw 'isw.fits', for cmb '/moto/hill/users/kms2320/websky_maps/cmb_lensed_nside1024_K.fits'
+map_file: 'isw.fits' #File for component map, assumed to be in Kelvin 
 wigner_file: '/moto/hill/users/kms2320/wigner3j_ellmax1000.p' #File containing wigner-3j symbols with zero m values, indexed as wigner3j[l1,l2,l3]. Leave empty if no such file.
 
 output_dir: '' #Output directory to save files and plots, if left empty a default will be created based on other input parameters

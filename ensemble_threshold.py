@@ -28,7 +28,7 @@ def get_one_map_and_mask(inp, sim):
 
     #get simulated map
     lmax_data = 3*inp.nside-1
-    map_ = hp.read_map(inp.map_file) 
+    map_ = hp.read_map(inp.map_file)
     map_cl = hp.anafast(map_, lmax=lmax_data)
     map_ = hp.synfast(map_cl, nside=inp.nside)
 
@@ -69,7 +69,7 @@ def one_sim(inp, sim, map_, mask, map_avg, mask_avg):
     Cl_aw: 1D numpy array, cross-spectrum of the map and mask 
     bispectrum_aaw: 3D numpy array indexed as bispectrum_aaw[l1,l2,l3], bispectrum consisting of two factors of map and one factor of mask (with means removed)
     bispectrum_waw: 3D numpy array indexed as bispectrum_waw[l1,l2,l3], bispectrum consisting of two factors of mask and one factor of map (with means removed)
-    Rho: 5D numpy array indexed as Rho[l1,l2,l3,l4,L], estimator for unnormalized trispectrum (with means removed from map and mask)
+    Rho: 5D numpy array indexed as Rho[l2,l4,l3,l5,l1], estimator for unnormalized trispectrum (with means removed from map and mask)
     '''
     
     #get one point functions
@@ -109,7 +109,7 @@ def one_sim(inp, sim, map_, mask, map_avg, mask_avg):
 
     #Compute rho (unnormalized trispectrum)
     print(f'Starting rho calculation for sim {sim}', flush=True)
-    Rho = rho(inp, map_-map_avg, mask-mask_avg, Cl_aw_mean_rem, Cl_aa_mean_rem, Cl_ww_mean_rem)
+    Rho = rho(inp, map_-map_avg, mask-mask_avg, Cl_aw_mean_rem, Cl_aa_mean_rem, Cl_ww_mean_rem, remove_two_point=True)
 
     #get MASTER LHS (directly computed power spectrum of masked map)
     master_lhs = hp.anafast(map_*mask, lmax=inp.ellmax)
@@ -162,8 +162,6 @@ if __name__ == '__main__':
     bispectrum_aaw = np.mean(np.array([res[6] for res in results]), axis=0)
     bispectrum_waw = np.mean(np.array([res[7] for res in results]), axis=0)
     Rho = np.mean(np.array([res[8] for res in results]), axis=0)
-    # pickle.dump(Rho, open(f'rho/rho_{inp.comp}_ellmax{inp.ellmax}_{inp.nsims}sims.p', 'wb')) #remove
-    # Rho = pickle.load(open(f'rho/rho_{inp.comp}_ellmax{inp.ellmax}_{inp.nsims}sims.p', 'rb')) #remove
 
     #Get all terms of reMASTERed equation
     print('Starting reMASTERed comparison', flush=True)

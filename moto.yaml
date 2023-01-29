@@ -1,10 +1,11 @@
 ellmax: 5 #ellmax for power spectra
+ell_sum_max: 10 #maximum ell to loop over
 nside: 16 #nside of maps, used in bi[tri]spectrum calculation
 
-map_file: 'isw.fits' #File for component map, assumed to be in Kelvin, for isw 'isw.fits', for cmb '/moto/hill/users/kms2320/websky_maps/cmb_lensed_nside1024_K.fits'
-mask_file: 'isw.fits' #File for mask.
+map_file: '/moto/hill/users/kms2320/websky_maps/cmb_lensed_nside1024_K.fits' #File for component map, assumed to be in Kelvin
+mask_file: '/moto/hill/users/kms2320/websky_maps/cmb_lensed_nside1024_K.fits' #File for mask
 wigner_file: '/moto/hill/users/kms2320/wigner3j_ellmax1000.p' #File containing wigner-3j symbols with zero m values, indexed as wigner3j[l1,l2,l3]. Leave empty if no such file.
 
-output_dir: 'isw_map_eq_mask' #Directory to save output files and plots
+output_dir: 'cmb_map_eq_mask' #Directory to save output files and plots
 save_files: 1 #Set to nonzero value to save pickle files for map, mask, masked map, and reMASTERed terms
 plot: 0 #Set to nonzero value to plot map, mask, masked map, and reMASTERed terms

@@ -71,9 +71,7 @@ bispectrum_waw = Bispectrum(inp, mask-np.mean(mask), map_-np.mean(map_), mask-np
 
 #Compute rho (unnormalized trispectrum)
 print('Starting rho calculation', flush=True)
-Rho = rho(inp, map_-np.mean(map_), mask-np.mean(mask), Cl_aw_mean_rem, Cl_aa_mean_rem, Cl_ww_mean_rem)
-# pickle.dump(Rho, open(f'rho/rho_isw_ellmax{inp.ellmax}.p', 'wb')) #remove
-# Rho = pickle.load(open(f'rho/rho_isw_ellmax{inp.ellmax}.p', 'rb')) #remove
+Rho = rho(inp, map_-np.mean(map_), mask-np.mean(mask), Cl_aw_mean_rem, Cl_aa_mean_rem, Cl_ww_mean_rem, remove_two_point=True)
 
 #get MASTER LHS (directly computed power spectrum of masked map)
 master_lhs = hp.anafast(map_*mask, lmax=inp.ellmax)
