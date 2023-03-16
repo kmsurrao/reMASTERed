@@ -5,6 +5,7 @@ import numpy as np
 import healpy as hp
 import multiprocessing as mp
 import time
+import pickle
 from input import Info
 from generate_mask import *
 from bispectrum import *

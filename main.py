@@ -4,6 +4,7 @@ import subprocess
 import numpy as np
 import healpy as hp
 import time
+import pickle
 from input import Info
 from bispectrum import *
 from trispectrum import *
