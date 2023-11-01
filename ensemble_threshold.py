@@ -1,4 +1,3 @@
-import sys
 import os
 import subprocess
 import numpy as np
@@ -6,6 +5,7 @@ import healpy as hp
 import multiprocessing as mp
 import time
 import pickle
+import argparse
 from input import Info
 from generate_mask import *
 from bispectrum import *
@@ -13,6 +13,7 @@ from trispectrum import *
 from test_remastered import * 
 from plot_mask import *
 from wigner3j import *
+
 
 def get_one_map_and_mask(inp, sim):
     '''
@@ -50,6 +51,7 @@ def get_one_map_and_mask(inp, sim):
         mask = hp.alm2map(wlm, nside=inp.nside)
 
     return map_, mask
+
 
 def one_sim(inp, sim, map_, mask, map_avg, mask_avg):
     '''
@@ -118,15 +120,15 @@ def one_sim(inp, sim, map_, mask, map_avg, mask_avg):
     return master_lhs, wlm_00, alm_00, Cl_aa, Cl_ww, Cl_aw, bispectrum_aaw, bispectrum_waw, Rho 
 
 
-if __name__ == '__main__': 
+def main_ensemble_threshold():
 
     start_time = time.time()
 
     # main input file containing most specifications 
-    try:
-        input_file = (sys.argv)[1]
-    except IndexError:
-        input_file = 'threshold_moto.yaml'
+    parser = argparse.ArgumentParser(description="Contributions of n-point functions to pseudo-Cl.")
+    parser.add_argument("--config", default="threshold_moto.yaml")
+    args = parser.parse_args()
+    input_file = args.config
 
     # read in the input file and set up Info object
     inp = Info(input_file, mask_provided=False)
@@ -173,3 +175,7 @@ if __name__ == '__main__':
     compare_master(inp, master_lhs, wlm_00, alm_00, Cl_aa, Cl_ww, Cl_aw, bispectrum_aaw, bispectrum_waw, Rho, my_env, base_dir=base_dir)
 
     print("--- %s seconds ---" % (time.time() - start_time), flush=True)
+
+
+if __name__ == '__main__': 
+    main_ensemble_threshold()

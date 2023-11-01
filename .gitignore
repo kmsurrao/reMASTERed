@@ -1,5 +1,6 @@
 *.DS_Store*
 *cori.yaml
+*nilc*
 *rho/*
 extra/*
 .ipynb_checkpoints/
@@ -17,6 +18,7 @@ bispectra/*
 bispectrum_plots/*
 maps/*
 *.ipynb
+*local*
 oliver*
 sbatch_script.sh
 *~
